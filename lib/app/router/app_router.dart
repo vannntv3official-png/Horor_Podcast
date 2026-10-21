@@ -12,14 +12,10 @@ import '../../features/home/presentation/home_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/stories/presentation/story_details_screen.dart';
-import '../../shared/providers/supabase_provider.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final localStorage = ref.watch(localStorageProvider);
-  final hasSeenOnboarding = localStorage.hasSeenOnboarding();
-
   return GoRouter(
-    initialLocation: hasSeenOnboarding ? '/' : '/onboarding',
+    initialLocation: '/',
     routes: [
       GoRoute(
         path: '/onboarding',

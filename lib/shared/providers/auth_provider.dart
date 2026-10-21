@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthException;
 import '../../core/errors/app_exception.dart';
 import '../../core/errors/error_handler.dart';
 import '../../core/logging/app_logger.dart';
@@ -118,14 +118,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
         data: {'display_name': displayName.trim()},
       );
       if (response.user != null) {
-        state = state.copyWith(
-          user: response.user,
-          isGuest: false,
-          isLoading: false,
-        );
-        await _fetchProfile(response.user!.id);
-        await _syncGuestFavorites(response.user!.id);
-        return true;
+        if (response.session != null) {
+          state = state.copyWith(
+            user: response.user,
+            isGuest: false,
+            isLoading: false,
+          );
+          await _fetchProfile(response.user!.id);
+          await _syncGuestFavorites(response.user!.id);
+          return true;
+        } else {
+          state = state.copyWith(
+            isLoading: false,
+            error: const AuthException(
+              message:
+                  'គណនីត្រូវបានបង្កើត! ប៉ុន្តែតម្រូវឱ្យ Confirm អ៊ីមែលជាមុនសិន។ សូមពិនិត្យ Inbox អ៊ីមែល ឬបិទ "Confirm email" ក្នុង Supabase Dashboard (Auth > Providers > Email)។',
+            ),
+          );
+          return false;
+        }
       }
       return false;
     } catch (e, st) {

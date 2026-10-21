@@ -183,16 +183,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-
-                  // Continue as Guest link
-                  TextButton(
-                    onPressed: () => context.go('/'),
-                    child: const Text(
-                      'បន្តប្រើប្រាស់ជាភ្ញៀវ (Continue as Guest)',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  ),
                 ],
               ),
             ),

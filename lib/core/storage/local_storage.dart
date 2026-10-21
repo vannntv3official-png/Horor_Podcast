@@ -10,9 +10,7 @@ class LocalStorage {
 
   static Future<LocalStorage> create() async {
     try {
-      final prefs = await SharedPreferences.getInstance().timeout(
-        const Duration(seconds: 2),
-      );
+      final prefs = await SharedPreferences.getInstance();
       return LocalStorage(prefs);
     } catch (_) {
       return LocalStorage(null);

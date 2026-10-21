@@ -54,6 +54,12 @@ class ErrorHandler {
       );
     }
 
+    if (error is supa.AuthRetryableFetchException || error.toString().contains('ClientException')) {
+      return const NetworkException(
+        message: 'មិនអាចភ្ជាប់ទៅកាន់ម៉ាស៊ីនមេ Supabase បានទេ។ សូមពិនិត្យមើលការតភ្ជាប់អ៊ីនធឺណិត។',
+      );
+    }
+
     if (error is supa.PostgrestException) {
       if (error.code == 'PGRST116') {
         return const NotFoundException();
@@ -74,15 +80,24 @@ class ErrorHandler {
 
   static String _mapSupabaseAuthError(String msg) {
     final lower = msg.toLowerCase();
-    if (lower.contains('invalid login credentials')) {
-      return 'អ៊ីមែល ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវទេ។';
+    if (lower.contains('email not confirmed') || lower.contains('email_not_confirmed')) {
+      return 'អ៊ីមែលនេះមិនទាន់បាន Confirm នៅឡើយទេ។ សូមពិនិត្យមើល Inbox អ៊ីមែលរបស់អ្នក ឬបិទ "Confirm email" ក្នុង Supabase Dashboard (Auth > Providers > Email)។';
     }
-    if (lower.contains('user already registered')) {
+    if (lower.contains('invalid login credentials') || lower.contains('invalid_credentials')) {
+      return 'អ៊ីមែល ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវទេ។ សូមពិនិត្យឡើងវិញ។';
+    }
+    if (lower.contains('user already registered') || lower.contains('already exists')) {
       return 'អ៊ីមែលនេះមានគណនីរួចហើយ។ សូមចូលប្រើប្រាស់។';
     }
     if (lower.contains('password should be at least')) {
       return 'ពាក្យសម្ងាត់ត្រូវមានយ៉ាងហោចណាស់ ៦ តួអក្សរ។';
     }
-    return 'ការផ្ទៀងផ្ទាត់គណនីមិនជោគជ័យ។ សូមព្យាយាមម្តងទៀត។';
+    if (lower.contains('user not found')) {
+      return 'រកមិនឃើញគណនីនេះទេ។ សូមចុះឈ្មោះគណនីថ្មី។';
+    }
+    if (lower.contains('over_email_send_rate_limit') || lower.contains('rate limit')) {
+      return 'បានផ្ញើសំណើច្រើនដងពេក។ សូមរង់ចាំបន្តិចសិន។';
+    }
+    return msg.isNotEmpty ? msg : 'ការផ្ទៀងផ្ទាត់គណនីមិនជោគជ័យ។ សូមព្យាយាមម្តងទៀត។';
   }
 }

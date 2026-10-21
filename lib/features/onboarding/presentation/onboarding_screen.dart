@@ -16,6 +16,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(localStorageProvider).setHasSeenOnboarding(true);
+    });
+  }
+
   final List<Map<String, dynamic>> _slides = [
     {
       'icon': Icons.headphones_rounded,

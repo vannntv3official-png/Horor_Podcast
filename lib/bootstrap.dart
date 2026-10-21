@@ -27,7 +27,7 @@ Future<void> bootstrap() async {
         authFlowType: AuthFlowType.pkce,
       ),
     ).timeout(
-      const Duration(seconds: 3),
+      const Duration(seconds: 6),
       onTimeout: () {
         AppLogger.warning('Supabase initialization timed out, continuing startup');
         return Supabase.instance;
