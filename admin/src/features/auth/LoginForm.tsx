@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
-import { Lock, Mail, AlertCircle, Loader2 } from 'lucide-react';
+import { Lock, Mail, AlertCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { isConfigured } from '../../lib/supabase';
 
 export const LoginForm: React.FC = () => {
   const { login } = useAuth();
@@ -38,6 +39,20 @@ export const LoginForm: React.FC = () => {
           <h1 className="text-2xl font-bold text-[#1D102F] text-center">Khmer Horror Podcast</h1>
           <p className="text-sm text-[#635C6E] text-center mt-1">Admin & Content Management Portal</p>
         </div>
+
+        {!isConfigured && (
+          <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-300 flex items-start gap-3 text-amber-900 text-xs leading-relaxed shadow-sm">
+            <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-600 mt-0.5" />
+            <div>
+              <p className="font-bold text-amber-950 mb-1">មិនទាន់បានកំណត់ Supabase លើ Vercel</p>
+              <p>
+                សូមចូលទៅកាន់ <strong>Vercel Settings &gt; Environment Variables</strong> រួចបញ្ចូល{' '}
+                <code>VITE_SUPABASE_URL</code> និង <code>VITE_SUPABASE_ANON_KEY</code> ហើយធ្វើការ{' '}
+                <strong>Redeploy</strong>។
+              </p>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 text-red-800 text-sm">
