@@ -88,15 +88,15 @@ export const StoryList: React.FC = () => {
     <div className="space-y-6">
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 max-w-2xl">
+          <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#8A7B9B]" />
             <input
               type="text"
               placeholder="ស្វែងរកតាមចំណងជើង ឬអ្នកនិទាន..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 rounded-xl bg-white border border-[#E2DCEB] text-xs text-[#1D102F] focus:outline-none focus:ring-2 focus:ring-[#1D102F] w-64"
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-white border border-[#E2DCEB] text-xs text-[#1D102F] focus:outline-none focus:ring-2 focus:ring-[#1D102F]"
             />
           </div>
 
@@ -117,7 +117,7 @@ export const StoryList: React.FC = () => {
             setStoryToEdit(null);
             setIsModalOpen(true);
           }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1D102F] hover:bg-[#2E1A47] text-white text-xs font-semibold shadow-md transition-all cursor-pointer"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#1D102F] hover:bg-[#2E1A47] text-white text-xs font-semibold shadow-md transition-all cursor-pointer w-full sm:w-auto flex-shrink-0"
         >
           <Plus className="w-4 h-4 text-[#C89B3C]" />
           <span>បង្កើតរឿងថ្មី (Create Story)</span>
@@ -138,7 +138,7 @@ export const StoryList: React.FC = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs min-w-[700px]">
               <thead className="bg-white/60 border-b border-[#E2DCEB] text-[#635C6E] uppercase font-semibold tracking-wider">
                 <tr>
                   <th className="py-3.5 px-4">គម្របរឿង</th>

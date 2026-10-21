@@ -470,9 +470,9 @@ CREATE POLICY "notifications_delete_admin"
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES
-    ('story-covers', 'story-covers', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp']),
-    ('podcast-audio', 'podcast-audio', true, 104857600, ARRAY['audio/mpeg', 'audio/mp3', 'audio/m4a', 'audio/aac']),
-    ('user-avatars', 'user-avatars', true, 2097152, ARRAY['image/jpeg', 'image/png', 'image/webp'])
+    ('story-covers', 'story-covers', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp']),
+    ('podcast-audio', 'podcast-audio', true, 52428800, ARRAY['audio/mpeg', 'audio/mp3', 'audio/m4a', 'audio/aac']),
+    ('user-avatars', 'user-avatars', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp'])
 ON CONFLICT (id) DO UPDATE SET
     public = EXCLUDED.public,
     file_size_limit = EXCLUDED.file_size_limit,

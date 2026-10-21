@@ -101,7 +101,8 @@ export const UserList: React.FC = () => {
             <p className="font-semibold text-sm text-[#1D102F]">មិនមានអ្នកប្រើប្រាស់ទេ</p>
           </div>
         ) : (
-          <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs min-w-[600px]">
             <thead className="bg-white/60 border-b border-[#E2DCEB] text-[#635C6E] uppercase font-semibold tracking-wider">
               <tr>
                 <th className="py-3.5 px-4">ឈ្មោះបង្ហាញ</th>
@@ -161,7 +162,8 @@ export const UserList: React.FC = () => {
               })}
             </tbody>
           </table>
-        )}
+        </div>
+      )}
       </div>
     </div>
   );

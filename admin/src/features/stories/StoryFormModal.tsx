@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, BUCKETS, getPublicStorageUrl } from '../../lib/supabase';
+import { compressImage } from '../../lib/imageCompressor';
 import { useAuth } from '../auth/AuthContext';
 import type { Story, Category, StoryStatus } from '../../types';
 import { X, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
@@ -80,16 +81,16 @@ export const StoryFormModal: React.FC<StoryFormModalProps> = ({
   };
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
 
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(rawFile.type)) {
       setError('ទម្រង់រូបភាពមិនត្រឹមត្រូវទេ។ សូមប្រើប្រាស់ JPG, PNG ឬ WebP។');
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError('ទំហំរូបភាពធំលើសកំណត់ 5MB។');
+    if (rawFile.size > 20 * 1024 * 1024) {
+      setError('ទំហំរូបភាពធំលើសកំណត់ 20MB។');
       return;
     }
 
@@ -97,13 +98,21 @@ export const StoryFormModal: React.FC<StoryFormModalProps> = ({
     setError(null);
 
     try {
-      const ext = file.name.split('.').pop() || 'jpg';
+      // Automatically compress and resize high-res images to under 1MB WebP
+      const file = await compressImage(rawFile, 1600, 1600, 0.85);
+
+      const ext = file.name.split('.').pop() || 'webp';
       const fileName = `cover_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from(BUCKETS.STORY_COVERS)
         .upload(fileName, file, { cacheControl: '3600', upsert: true });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        if (uploadError.message.toLowerCase().includes('exceeded') || uploadError.message.includes('413')) {
+          throw new Error('ទំហំរូបភាពលើសកំណត់របស់ Supabase។ ប្រព័ន្ធបានព្យាយាមបង្រួមរួចហើយ សូមជ្រើសរើសរូបភាពដែលមាន resolution ទាបជាងនេះ។');
+        }
+        throw uploadError;
+      }
 
       setCoverPath(fileName);
     } catch (err: unknown) {
@@ -330,18 +339,18 @@ export const StoryFormModal: React.FC<StoryFormModalProps> = ({
           </div>
 
           {/* Actions */}
-          <div className="pt-4 border-t border-[#E2DCEB] flex items-center justify-end gap-3">
+          <div className="pt-4 border-t border-[#E2DCEB] flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#635C6E] hover:bg-gray-100 cursor-pointer"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold text-[#635C6E] hover:bg-gray-100 cursor-pointer text-center"
             >
               បោះបង់
             </button>
             <button
               type="submit"
               disabled={saving || uploadingCover}
-              className="px-5 py-2.5 rounded-xl bg-[#1D102F] hover:bg-[#2E1A47] text-white text-xs font-semibold transition-all shadow-md flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#1D102F] hover:bg-[#2E1A47] text-white text-xs font-semibold transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               {saving && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#C89B3C]" />}
               <span>រក្សាទុក (Save Story)</span>

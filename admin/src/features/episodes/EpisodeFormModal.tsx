@@ -86,8 +86,8 @@ export const EpisodeFormModal: React.FC<EpisodeFormModalProps> = ({
       return;
     }
 
-    if (file.size > 100 * 1024 * 1024) {
-      setError('ទំហំឯកសារធំលើសកម្រិត 100MB។');
+    if (file.size > 50 * 1024 * 1024) {
+      setError(`ទំហំឯកសារធំលើសកំណត់ 50MB (${(file.size / (1024 * 1024)).toFixed(1)}MB)។ គម្រោង Supabase Free Tier កំណត់ទំហំបង្ហោះអតិបរមា 50MB ក្នុងមួយឯកសារ។ សូមបង្រួមឯកសារ MP3 (Bitrate 96kbps ឬ 128kbps) ឬបែងចែកជាភាគខ្លីៗ។`);
       return;
     }
 
@@ -114,7 +114,12 @@ export const EpisodeFormModal: React.FC<EpisodeFormModalProps> = ({
         .from(BUCKETS.PODCAST_AUDIO)
         .upload(fileName, file, { cacheControl: '3600', upsert: true });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        if (uploadError.message.toLowerCase().includes('exceeded') || uploadError.message.includes('413')) {
+          throw new Error('ទំហំឯកសារធំលើសដែនកំណត់របស់ Supabase (អតិបរមា 50MB)។ សូមបង្រួម Bitrate នៃឯកសារ MP3 (ឧ. 96kbps ឬ 128kbps) ឬបែងចែកជាភាគខ្លីៗ។');
+        }
+        throw uploadError;
+      }
 
       setUploadProgress(100);
       setAudioPath(fileName);
@@ -376,18 +381,18 @@ export const EpisodeFormModal: React.FC<EpisodeFormModalProps> = ({
           </div>
 
           {/* Actions */}
-          <div className="pt-4 border-t border-[#E2DCEB] flex items-center justify-end gap-3">
+          <div className="pt-4 border-t border-[#E2DCEB] flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#635C6E] hover:bg-gray-100 cursor-pointer"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold text-[#635C6E] hover:bg-gray-100 cursor-pointer text-center"
             >
               បោះបង់
             </button>
             <button
               type="submit"
               disabled={saving || uploading}
-              className="px-5 py-2.5 rounded-xl bg-[#1D102F] hover:bg-[#2E1A47] text-white text-xs font-semibold transition-all shadow-md flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#1D102F] hover:bg-[#2E1A47] text-white text-xs font-semibold transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               {saving && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#C89B3C]" />}
               <span>រក្សាទុក (Save Episode)</span>

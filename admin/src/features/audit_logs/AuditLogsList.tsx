@@ -48,7 +48,8 @@ export const AuditLogsList: React.FC = () => {
             <p className="font-semibold text-sm text-[#1D102F]">មិនទាន់មានកំណត់ហេតុទេ</p>
           </div>
         ) : (
-          <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs min-w-[650px]">
             <thead className="bg-white/60 border-b border-[#E2DCEB] text-[#635C6E] uppercase font-semibold tracking-wider">
               <tr>
                 <th className="py-3.5 px-4">សកម្មភាព (Action)</th>
@@ -84,7 +85,8 @@ export const AuditLogsList: React.FC = () => {
               ))}
             </tbody>
           </table>
-        )}
+        </div>
+      )}
       </div>
     </div>
   );

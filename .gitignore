@@ -63,3 +63,4 @@ admin/.env.local
 
 # Test outputs
 test-results/
+supabase/.temp/

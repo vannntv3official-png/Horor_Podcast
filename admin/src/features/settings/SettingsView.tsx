@@ -3,7 +3,7 @@ import { ShieldCheck, HardDrive, Globe, Save } from 'lucide-react';
 
 export const SettingsView: React.FC = () => {
   const [appName, setAppName] = useState('Khmer Horror Podcast');
-  const [maxUploadMb, setMaxUploadMb] = useState('100');
+  const [maxUploadMb, setMaxUploadMb] = useState('50');
   const [defaultLanguage, setDefaultLanguage] = useState('km');
   const [privacyUrl, setPrivacyUrl] = useState('https://khmerhorrorpodcast.com/privacy');
   const [termsUrl, setTermsUrl] = useState('https://khmerhorrorpodcast.com/terms');

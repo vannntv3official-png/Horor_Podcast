@@ -153,14 +153,14 @@ export const CategoryList: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold text-[#1D102F]">ប្រភេទរឿង (Categories)</h2>
           <p className="text-xs text-[#635C6E]">គ្រប់គ្រងប្រភេទរឿង និងលំដាប់លំដោយបង្ហាញលើ App</p>
         </div>
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1D102F] hover:bg-[#2E1A47] text-white text-xs font-semibold shadow-md transition-all cursor-pointer"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#1D102F] hover:bg-[#2E1A47] text-white text-xs font-semibold shadow-md transition-all cursor-pointer w-full sm:w-auto"
         >
           <Plus className="w-4 h-4 text-[#C89B3C]" />
           <span>បង្កើតប្រភេទថ្មី (Create Category)</span>
@@ -179,7 +179,8 @@ export const CategoryList: React.FC = () => {
             <p className="font-semibold text-sm text-[#1D102F]">មិនទាន់មានប្រភេទរឿងទេ</p>
           </div>
         ) : (
-          <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs min-w-[600px]">
             <thead className="bg-white/60 border-b border-[#E2DCEB] text-[#635C6E] uppercase font-semibold tracking-wider">
               <tr>
                 <th className="py-3.5 px-4 w-14">លំដាប់</th>
@@ -242,7 +243,8 @@ export const CategoryList: React.FC = () => {
               ))}
             </tbody>
           </table>
-        )}
+        </div>
+      )}
       </div>
 
       {/* Modal */}
@@ -336,18 +338,18 @@ export const CategoryList: React.FC = () => {
                 </label>
               </div>
 
-              <div className="pt-4 border-t border-[#E2DCEB] flex items-center justify-end gap-3">
+              <div className="pt-4 border-t border-[#E2DCEB] flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#635C6E] hover:bg-gray-100 cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold text-[#635C6E] hover:bg-gray-100 cursor-pointer text-center"
                 >
                   បោះបង់
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2.5 rounded-xl bg-[#1D102F] hover:bg-[#2E1A47] text-white text-xs font-semibold transition-all shadow-md flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#1D102F] hover:bg-[#2E1A47] text-white text-xs font-semibold transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#C89B3C]" /> : <Check className="w-3.5 h-3.5" />}
                   <span>រក្សាទុក (Save)</span>

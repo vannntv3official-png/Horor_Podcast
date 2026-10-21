@@ -9,14 +9,22 @@ import {
   ScrollText,
   Settings,
   LogOut,
+  X,
 } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  activeTab,
+  setActiveTab,
+  isOpen = false,
+  onClose,
+}) => {
   const { user, role, logout } = useAuth();
 
   const navItems = [
@@ -29,65 +37,96 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     { id: 'settings', label: 'ការកំណត់ (Settings)', icon: Settings },
   ];
 
+  const handleSelectTab = (tabId: string) => {
+    setActiveTab(tabId);
+    onClose?.();
+  };
+
   return (
-    <aside className="w-64 glass-panel border-r border-[#E2DCEB] flex flex-col h-screen sticky top-0">
-      {/* Brand Header */}
-      <div className="p-6 border-b border-[#E2DCEB]/60 flex items-center gap-3">
-        <img
-          src="/app_logo.png"
-          alt="Khmer Horror"
-          className="w-10 h-10 rounded-xl object-cover shadow-md border border-[#E2DCEB]"
-        />
-        <div>
-          <h2 className="font-bold text-[#1D102F] text-base leading-tight">Khmer Horror</h2>
-          <span className="text-[11px] font-semibold tracking-wider text-[#8A7B9B] uppercase">Admin Web</span>
-        </div>
-      </div>
+    <>
+      {/* Mobile Backdrop Overlay */}
+      <div
+        onClick={onClose}
+        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-xs md:hidden transition-opacity duration-300 ${
+          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      />
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-xs transition-all cursor-pointer ${
-                isActive
-                  ? 'bg-[#1D102F] text-white shadow-md shadow-purple-950/15'
-                  : 'text-[#635C6E] hover:bg-white/60 hover:text-[#1D102F]'
-              }`}
-            >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-[#C89B3C]' : 'text-[#8A7B9B]'}`} />
-              <span className="truncate">{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      {/* Main Sidebar (Drawer on Mobile, Sticky on Desktop) */}
+      <aside
+        className={`fixed md:sticky top-0 left-0 z-50 h-screen w-64 glass-panel border-r border-[#E2DCEB] flex flex-col bg-[#FBF9F5] transition-transform duration-300 ease-in-out md:translate-x-0 ${
+          isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
+        }`}
+      >
+        {/* Brand Header */}
+        <div className="p-5 sm:p-6 border-b border-[#E2DCEB]/60 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img
+              src="/app_logo.png"
+              alt="Khmer Horror"
+              className="w-10 h-10 rounded-xl object-cover shadow-md border border-[#E2DCEB]"
+            />
+            <div>
+              <h2 className="font-bold text-[#1D102F] text-base leading-tight">Khmer Horror</h2>
+              <span className="text-[11px] font-semibold tracking-wider text-[#8A7B9B] uppercase">Admin Web</span>
+            </div>
+          </div>
 
-      {/* Footer Profile & Sign Out */}
-      <div className="p-4 border-t border-[#E2DCEB]/60">
-        <div className="flex items-center gap-3 mb-3 p-2 rounded-xl bg-white/60 border border-[#E2DCEB]/80">
-          <div className="w-8 h-8 rounded-lg bg-[#2E1A47] text-white flex items-center justify-center text-xs font-bold">
-            {user?.email?.[0].toUpperCase() || 'A'}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-[#1D102F] truncate">{user?.email}</p>
-            <span className="inline-block text-[10px] font-bold text-[#C89B3C] uppercase tracking-wide">
-              {role}
-            </span>
-          </div>
+          {/* Close button for mobile */}
+          <button
+            onClick={onClose}
+            className="md:hidden p-1.5 rounded-lg text-[#8A7B9B] hover:bg-gray-100 cursor-pointer"
+            aria-label="Close sidebar"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        <button
-          onClick={logout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 text-xs font-semibold transition-all cursor-pointer"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          <span>ចាកចេញ (Sign Out)</span>
-        </button>
-      </div>
-    </aside>
+        {/* Navigation */}
+        <nav className="flex-1 p-3 sm:p-4 space-y-1.5 overflow-y-auto">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleSelectTab(item.id)}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-xs transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-[#1D102F] text-white shadow-md shadow-purple-950/15'
+                    : 'text-[#635C6E] hover:bg-white/60 hover:text-[#1D102F]'
+                }`}
+              >
+                <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-[#C89B3C]' : 'text-[#8A7B9B]'}`} />
+                <span className="truncate">{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Footer Profile & Sign Out */}
+        <div className="p-4 border-t border-[#E2DCEB]/60">
+          <div className="flex items-center gap-3 mb-3 p-2 rounded-xl bg-white/60 border border-[#E2DCEB]/80">
+            <div className="w-8 h-8 rounded-lg bg-[#2E1A47] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+              {user?.email?.[0].toUpperCase() || 'A'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-[#1D102F] truncate">{user?.email}</p>
+              <span className="inline-block text-[10px] font-bold text-[#C89B3C] uppercase tracking-wide">
+                {role}
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={logout}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 text-xs font-semibold transition-all cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>ចាកចេញ (Sign Out)</span>
+          </button>
+        </div>
+      </aside>
+    </>
   );
 };
