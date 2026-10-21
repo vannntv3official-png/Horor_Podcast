@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide LocalStorage;
@@ -14,10 +15,10 @@ Future<void> bootstrap() async {
 
   AppLogger.info('Initializing Khmer Horror Podcast client...');
 
-  // Initialize Local Storage
+  // 1. Initialize Local Storage (fail-safe with fallback)
   final localStorage = await LocalStorage.create();
 
-  // Initialize Supabase
+  // 2. Initialize Supabase (with strict timeout so startup never stalls)
   try {
     await Supabase.initialize(
       url: EnvConfig.supabaseUrl,
@@ -25,22 +26,35 @@ Future<void> bootstrap() async {
       authOptions: const FlutterAuthClientOptions(
         authFlowType: AuthFlowType.pkce,
       ),
+    ).timeout(
+      const Duration(seconds: 3),
+      onTimeout: () {
+        AppLogger.warning('Supabase initialization timed out, continuing startup');
+        return Supabase.instance;
+      },
     );
     AppLogger.info('Supabase initialized successfully.');
   } catch (e) {
     AppLogger.warning('Supabase initialization fallback: $e');
   }
 
-  // Initialize Background Audio Engine
+  // 3. Initialize Background Audio Engine (with strict timeout to avoid splash screen deadlocks)
   KhmerAudioHandler audioHandler;
   try {
-    audioHandler = await initAudioService();
+    audioHandler = await initAudioService().timeout(
+      const Duration(seconds: 2),
+      onTimeout: () {
+        AppLogger.warning('AudioService.init timed out, using fallback KhmerAudioHandler');
+        return KhmerAudioHandler();
+      },
+    );
     AppLogger.info('Background audio service initialized.');
   } catch (e, st) {
-    AppLogger.error('Audio service init fallback', e, st);
+    AppLogger.error('Audio service init fallback: $e', e, st);
     audioHandler = KhmerAudioHandler();
   }
 
+  // 4. Guaranteed to run the app immediately
   runApp(
     ProviderScope(
       overrides: [

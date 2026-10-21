@@ -3,22 +3,38 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
 
 class LocalStorage {
-  final SharedPreferences _prefs;
+  final SharedPreferences? _prefs;
+  final Map<String, dynamic> _memoryFallback = {};
 
-  LocalStorage(this._prefs);
+  LocalStorage([this._prefs]);
 
   static Future<LocalStorage> create() async {
-    final prefs = await SharedPreferences.getInstance();
-    return LocalStorage(prefs);
+    try {
+      final prefs = await SharedPreferences.getInstance().timeout(
+        const Duration(seconds: 2),
+      );
+      return LocalStorage(prefs);
+    } catch (_) {
+      return LocalStorage(null);
+    }
   }
 
   // Guest Favorites
   List<String> getGuestFavorites() {
-    return _prefs.getStringList(AppConstants.keyGuestFavorites) ?? [];
+    if (_prefs != null) {
+      return _prefs.getStringList(AppConstants.keyGuestFavorites) ?? [];
+    }
+    return (_memoryFallback[AppConstants.keyGuestFavorites] as List<dynamic>?)
+            ?.cast<String>() ??
+        [];
   }
 
   Future<void> saveGuestFavorites(List<String> storyIds) async {
-    await _prefs.setStringList(AppConstants.keyGuestFavorites, storyIds);
+    if (_prefs != null) {
+      await _prefs.setStringList(AppConstants.keyGuestFavorites, storyIds);
+    } else {
+      _memoryFallback[AppConstants.keyGuestFavorites] = storyIds;
+    }
   }
 
   Future<void> addGuestFavorite(String storyId) async {
@@ -36,12 +52,21 @@ class LocalStorage {
   }
 
   Future<void> clearGuestFavorites() async {
-    await _prefs.remove(AppConstants.keyGuestFavorites);
+    if (_prefs != null) {
+      await _prefs.remove(AppConstants.keyGuestFavorites);
+    } else {
+      _memoryFallback.remove(AppConstants.keyGuestFavorites);
+    }
   }
 
   // Recent Searches
   List<String> getRecentSearches() {
-    return _prefs.getStringList(AppConstants.keyRecentSearches) ?? [];
+    if (_prefs != null) {
+      return _prefs.getStringList(AppConstants.keyRecentSearches) ?? [];
+    }
+    return (_memoryFallback[AppConstants.keyRecentSearches] as List<dynamic>?)
+            ?.cast<String>() ??
+        [];
   }
 
   Future<void> addRecentSearch(String query) async {
@@ -53,34 +78,58 @@ class LocalStorage {
     if (list.length > 10) {
       list.removeRange(10, list.length);
     }
-    await _prefs.setStringList(AppConstants.keyRecentSearches, list);
+    if (_prefs != null) {
+      await _prefs.setStringList(AppConstants.keyRecentSearches, list);
+    } else {
+      _memoryFallback[AppConstants.keyRecentSearches] = list;
+    }
   }
 
   Future<void> clearRecentSearches() async {
-    await _prefs.remove(AppConstants.keyRecentSearches);
+    if (_prefs != null) {
+      await _prefs.remove(AppConstants.keyRecentSearches);
+    } else {
+      _memoryFallback.remove(AppConstants.keyRecentSearches);
+    }
   }
 
   // Playback Speed
   double getPlaybackSpeed() {
-    return _prefs.getDouble(AppConstants.keyPlaybackSpeed) ?? 1.0;
+    if (_prefs != null) {
+      return _prefs.getDouble(AppConstants.keyPlaybackSpeed) ?? 1.0;
+    }
+    return (_memoryFallback[AppConstants.keyPlaybackSpeed] as double?) ?? 1.0;
   }
 
   Future<void> savePlaybackSpeed(double speed) async {
-    await _prefs.setDouble(AppConstants.keyPlaybackSpeed, speed);
+    if (_prefs != null) {
+      await _prefs.setDouble(AppConstants.keyPlaybackSpeed, speed);
+    } else {
+      _memoryFallback[AppConstants.keyPlaybackSpeed] = speed;
+    }
   }
 
   // Onboarding
   bool hasSeenOnboarding() {
-    return _prefs.getBool(AppConstants.keyHasSeenOnboarding) ?? false;
+    if (_prefs != null) {
+      return _prefs.getBool(AppConstants.keyHasSeenOnboarding) ?? false;
+    }
+    return (_memoryFallback[AppConstants.keyHasSeenOnboarding] as bool?) ?? false;
   }
 
   Future<void> setHasSeenOnboarding(bool seen) async {
-    await _prefs.setBool(AppConstants.keyHasSeenOnboarding, seen);
+    if (_prefs != null) {
+      await _prefs.setBool(AppConstants.keyHasSeenOnboarding, seen);
+    } else {
+      _memoryFallback[AppConstants.keyHasSeenOnboarding] = seen;
+    }
   }
 
   // Offline Downloads Registry (JSON Map)
   Map<String, dynamic> getDownloadsRegistry() {
-    final str = _prefs.getString(AppConstants.keyOfflineDownloads);
+    final str = _prefs != null
+        ? _prefs.getString(AppConstants.keyOfflineDownloads)
+        : (_memoryFallback[AppConstants.keyOfflineDownloads] as String?);
     if (str == null || str.isEmpty) return {};
     try {
       return jsonDecode(str) as Map<String, dynamic>;
@@ -90,6 +139,11 @@ class LocalStorage {
   }
 
   Future<void> saveDownloadsRegistry(Map<String, dynamic> data) async {
-    await _prefs.setString(AppConstants.keyOfflineDownloads, jsonEncode(data));
+    final str = jsonEncode(data);
+    if (_prefs != null) {
+      await _prefs.setString(AppConstants.keyOfflineDownloads, str);
+    } else {
+      _memoryFallback[AppConstants.keyOfflineDownloads] = str;
+    }
   }
 }
