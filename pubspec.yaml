@@ -1,0 +1,54 @@
+name: khmer_horror_podcast
+description: "Khmer Horror Podcast - Premium Digital Audio Platform for Khmer Ghost Stories and Folklore"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.5
+  flutter: ">=3.47.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # State Management
+  flutter_riverpod: ^2.5.1
+
+  # Audio Playback & Background Media Controls
+  just_audio: ^0.9.40
+  audio_service: ^0.18.17
+  audio_session: ^0.1.21
+
+  # Supabase Client, Auth & Storage
+  supabase_flutter: ^2.8.0
+
+  # Routing
+  go_router: ^14.3.0
+
+  # Networking & Offline Downloads
+  dio: ^5.7.0
+  path_provider: ^2.1.4
+  path: ^1.9.0
+
+  # Persistence & Caching
+  shared_preferences: ^2.3.2
+  cached_network_image: ^3.4.1
+
+  # UI / Polish / Fonts
+  google_fonts: ^6.2.1
+  shimmer: ^3.0.0
+  intl: ^0.19.0
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
