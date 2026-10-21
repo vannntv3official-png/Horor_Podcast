@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
-import { Headphones, Lock, Mail, AlertCircle, Loader2 } from 'lucide-react';
+import { Lock, Mail, AlertCircle, Loader2 } from 'lucide-react';
 
 export const LoginForm: React.FC = () => {
   const { login } = useAuth();
@@ -30,9 +30,11 @@ export const LoginForm: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#FBF9F5]">
       <div className="w-full max-w-md glass-panel p-8 rounded-3xl shadow-xl border border-[#E2DCEB]">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-[#1D102F] text-[#C89B3C] flex items-center justify-center mb-4 shadow-lg shadow-purple-950/10">
-            <Headphones className="w-8 h-8" />
-          </div>
+          <img
+            src="/app_logo.png"
+            alt="Khmer Horror Podcast"
+            className="w-20 h-20 rounded-2xl object-cover mb-4 shadow-lg shadow-purple-950/20 border border-[#E2DCEB]"
+          />
           <h1 className="text-2xl font-bold text-[#1D102F] text-center">Khmer Horror Podcast</h1>
           <p className="text-sm text-[#635C6E] text-center mt-1">Admin & Content Management Portal</p>
         </div>

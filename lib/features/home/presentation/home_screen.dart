@@ -87,13 +87,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   scrolledUnderElevation: 0,
                   title: Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryContainer.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(12),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.asset(
+                          'assets/icons/app_icon.png',
+                          width: 38,
+                          height: 38,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryContainer.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.headphones_rounded, color: AppColors.primary, size: 20),
+                          ),
                         ),
-                        child: const Icon(Icons.headphones_rounded, color: AppColors.primary, size: 20),
                       ),
                       const SizedBox(width: 10),
                       Column(

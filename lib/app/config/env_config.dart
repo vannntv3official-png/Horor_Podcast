@@ -3,12 +3,13 @@
 class EnvConfig {
   static const String supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',
-    defaultValue: 'https://demo-project.supabase.co',
+    defaultValue: 'https://gtnzgqvwobuobzdsrpmd.supabase.co',
   );
 
   static const String supabaseAnonKey = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
-    defaultValue: 'public-anon-key-placeholder',
+    defaultValue:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0bnpncXZ3b2J1b2J6ZHNycG1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2MDE0MjYsImV4cCI6MjEwODE3NzQyNn0.X2SLfWRqv3lMmJTjf1QPbOx1DM8XV2ECeVIP7pGCD2I',
   );
 
   static const String appName = 'Khmer Horror Podcast';

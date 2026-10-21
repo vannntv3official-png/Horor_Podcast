@@ -9,7 +9,6 @@ import {
   ScrollText,
   Settings,
   LogOut,
-  Sparkles,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -34,9 +33,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     <aside className="w-64 glass-panel border-r border-[#E2DCEB] flex flex-col h-screen sticky top-0">
       {/* Brand Header */}
       <div className="p-6 border-b border-[#E2DCEB]/60 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-[#1D102F] text-[#C89B3C] flex items-center justify-center shadow-md">
-          <Sparkles className="w-5 h-5" />
-        </div>
+        <img
+          src="/app_logo.png"
+          alt="Khmer Horror"
+          className="w-10 h-10 rounded-xl object-cover shadow-md border border-[#E2DCEB]"
+        />
         <div>
           <h2 className="font-bold text-[#1D102F] text-base leading-tight">Khmer Horror</h2>
           <span className="text-[11px] font-semibold tracking-wider text-[#8A7B9B] uppercase">Admin Web</span>

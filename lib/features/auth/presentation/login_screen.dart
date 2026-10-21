@@ -54,12 +54,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // App Logo & Title
-                  const GlassContainer(
-                    width: 80,
-                    height: 80,
-                    borderRadius: 24,
-                    child: Center(
-                      child: Icon(Icons.headphones_rounded, size: 40, color: AppColors.accent),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: Image.asset(
+                      'assets/icons/app_icon.png',
+                      width: 84,
+                      height: 84,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const GlassContainer(
+                        width: 80,
+                        height: 80,
+                        borderRadius: 24,
+                        child: Center(
+                          child: Icon(Icons.headphones_rounded, size: 40, color: AppColors.accent),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),

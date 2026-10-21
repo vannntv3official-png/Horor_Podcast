@@ -58,6 +58,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               key: _formKey,
               child: Column(
                 children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.asset(
+                      'assets/icons/app_icon.png',
+                      width: 72,
+                      height: 72,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                   if (authState.error != null) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
