@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { formatDate } from '../../lib/utils';
 import { useAuth } from '../auth/AuthContext';
 import type { UserProfile, UserRole } from '../../types';
-import { Users, Shield, Loader2, Search } from 'lucide-react';
+import { Users, Shield, Loader2, Search, AlertCircle, RefreshCw } from 'lucide-react';
 
 export const UserList: React.FC = () => {
   const { user: currentUser, isAdmin } = useAuth();
@@ -12,29 +12,51 @@ export const UserList: React.FC = () => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
+    setErrorMessage(null);
     try {
-      const { data, error } = await supabase
+      // 1. Fetch profiles safely without relying on relational foreign keys
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('*, user_roles(role)')
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (profilesError) throw profilesError;
 
-      const formatted = (data || []).map((p) => {
-        const roles = (p.user_roles as { role: UserRole }[]) || [];
-        const role = roles.length > 0 ? roles[0].role : 'user';
-        return {
-          ...p,
-          role,
-        };
+      // 2. Fetch user roles in parallel
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+
+      if (rolesError) {
+        console.warn('Could not fetch roles from user_roles table:', rolesError.message);
+      }
+
+      // 3. Map user roles to user IDs (prioritizing admin > editor > user)
+      const roleMap = new Map<string, UserRole>();
+      (rolesData || []).forEach((r) => {
+        const existing = roleMap.get(r.user_id);
+        if (!existing || r.role === 'admin' || (r.role === 'editor' && existing === 'user')) {
+          roleMap.set(r.user_id, r.role as UserRole);
+        }
       });
 
+      // 4. Format profiles
+      const formatted: UserProfile[] = (profilesData || []).map((p) => ({
+        ...p,
+        role: roleMap.get(p.id) || 'user',
+      }));
+
       setUsers(formatted);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to load users:', err);
+      setErrorMessage(
+        (err as Error).message ||
+          'មិនអាចទាញយកបញ្ជីអ្នកប្រើប្រាស់បានទេ។ សូមប្រាកដថាគណនីរបស់អ្នកមានសិទ្ធិជា Admin ឬ Editor ក្នុង Supabase។'
+      );
     } finally {
       setLoading(false);
     }
@@ -59,14 +81,12 @@ export const UserList: React.FC = () => {
 
       if (error) throw error;
 
-      // Clean up previous conflicting roles if downgrading
-      if (newRole !== 'admin') {
-        await supabase
-          .from('user_roles')
-          .delete()
-          .eq('user_id', targetUserId)
-          .neq('role', newRole);
-      }
+      // Clean up previous conflicting roles if changing
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', targetUserId)
+        .neq('role', newRole);
 
       // Log audit
       await supabase.from('admin_audit_logs').insert({
@@ -128,6 +148,25 @@ export const UserList: React.FC = () => {
         </div>
       </div>
 
+      {errorMessage && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-xs text-amber-900 flex items-start justify-between gap-3 shadow-sm">
+          <div className="flex items-start gap-2.5">
+            <AlertCircle className="w-5 h-5 flex-shrink-0 text-amber-600 mt-0.5" />
+            <div>
+              <p className="font-bold text-amber-950 mb-0.5">បញ្ហាក្នុងការទាញយកអ្នកប្រើប្រាស់</p>
+              <p>{errorMessage}</p>
+            </div>
+          </div>
+          <button
+            onClick={fetchUsers}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-amber-300 font-semibold text-[#1D102F] hover:bg-amber-100 transition-colors cursor-pointer flex-shrink-0"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>ព្យាយាមម្តងទៀត</span>
+          </button>
+        </div>
+      )}
+
       <div className="glass-panel rounded-3xl border border-[#E2DCEB] overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-20">
@@ -137,6 +176,9 @@ export const UserList: React.FC = () => {
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Users className="w-12 h-12 text-[#8A7B9B] mb-3" />
             <p className="font-semibold text-sm text-[#1D102F]">មិនមានអ្នកប្រើប្រាស់ត្រូវតាមលក្ខខណ្ឌទេ</p>
+            <p className="text-xs text-[#8A7B9B] mt-1">
+              {users.length === 0 ? 'មិនទាន់មានគណនីណាមួយត្រូវបានរក្សាទុកក្នុង Profiles នៅឡើយទេ។' : 'សូមសាកល្បងផ្លាស់ប្តូរពាក្យស្វែងរក។'}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
