@@ -12,10 +12,53 @@ import '../../features/home/presentation/home_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/stories/presentation/story_details_screen.dart';
+import '../../shared/providers/auth_provider.dart';
+import '../../shared/providers/supabase_provider.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final localStorage = ref.watch(localStorageProvider);
+  final authState = ref.watch(authProvider);
+
+  final hasSeenOnboarding = localStorage.hasSeenOnboarding();
+  final isAuthenticated = authState.isAuthenticated;
+
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: () {
+      if (!hasSeenOnboarding) return '/onboarding';
+      if (!isAuthenticated) return '/login';
+      return '/';
+    }(),
+    redirect: (context, state) {
+      final seenOnboarding = localStorage.hasSeenOnboarding();
+      final isLoggedIn = ref.read(authProvider).isAuthenticated;
+      final location = state.matchedLocation;
+
+      final isAuthRoute = location == '/login' || location == '/register';
+      final isOnboardingRoute = location == '/onboarding';
+
+      // 1. First-time users must see onboarding
+      if (!seenOnboarding) {
+        if (!isOnboardingRoute && !isAuthRoute) {
+          return '/onboarding';
+        }
+        return null;
+      }
+
+      // 2. Unauthenticated users must log in
+      if (!isLoggedIn) {
+        if (!isAuthRoute) {
+          return '/login';
+        }
+        return null;
+      }
+
+      // 3. Authenticated users should not see login/register/onboarding
+      if (isLoggedIn && (isAuthRoute || isOnboardingRoute)) {
+        return '/';
+      }
+
+      return null;
+    },
     routes: [
       GoRoute(
         path: '/onboarding',

@@ -74,10 +74,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.errorContainer.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.error.withOpacity(0.3)),
                       ),
-                      child: Text(
-                        authState.error!.message,
-                        style: const TextStyle(color: AppColors.error, fontSize: 13),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline_rounded, color: AppColors.error),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              authState.error!.message,
+                              style: const TextStyle(color: AppColors.error, fontSize: 13),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 18),
@@ -173,6 +182,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             )
                           : const Text('បង្កើតគណនី (Sign Up)'),
                     ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Already have account link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('មានគណនីរួចហើយ?'),
+                      TextButton(
+                        onPressed: () => context.go('/login'),
+                        child: const Text('ចូលគណនីនៅទីនេះ'),
+                      ),
+                    ],
                   ),
                 ],
               ),

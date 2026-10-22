@@ -24,7 +24,7 @@ Future<void> bootstrap() async {
       url: EnvConfig.supabaseUrl,
       anonKey: EnvConfig.supabaseAnonKey,
       authOptions: const FlutterAuthClientOptions(
-        authFlowType: AuthFlowType.pkce,
+        authFlowType: AuthFlowType.implicit,
       ),
     ).timeout(
       const Duration(seconds: 6),

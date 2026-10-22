@@ -54,7 +54,24 @@ class ErrorHandler {
       );
     }
 
-    if (error is supa.AuthRetryableFetchException || error.toString().contains('ClientException')) {
+    final errorStr = error.toString();
+    final lower = errorStr.toLowerCase();
+
+    // Check for common auth error patterns in any error object
+    if (lower.contains('email rate limit') ||
+        lower.contains('over_email_send_rate_limit') ||
+        lower.contains('user already registered') ||
+        lower.contains('already exists') ||
+        lower.contains('email not confirmed') ||
+        lower.contains('invalid login credentials') ||
+        lower.contains('invalid_credentials')) {
+      return AuthException(
+        message: _mapSupabaseAuthError(errorStr),
+        technicalDetails: errorStr,
+      );
+    }
+
+    if (error is supa.AuthRetryableFetchException || lower.contains('clientexception')) {
       return const NetworkException(
         message: 'មិនអាចភ្ជាប់ទៅកាន់ម៉ាស៊ីនមេ Supabase បានទេ។ សូមពិនិត្យមើលការតភ្ជាប់អ៊ីនធឺណិត។',
       );
@@ -73,30 +90,36 @@ class ErrorHandler {
       );
     }
 
-    return const AppException(
-      message: 'មានបញ្ហាមិនរំពឹងទុកមួយបានកើតឡើង។ សូមព្យាយាមម្តងទៀតនៅពេលក្រោយ។',
+    final cleanMsg = errorStr.replaceFirst(RegExp(r'^Exception:\s*'), '');
+    return AppException(
+      message: cleanMsg.isNotEmpty && !cleanMsg.startsWith('Instance of')
+          ? 'មានបញ្ហា៖ $cleanMsg'
+          : 'មានបញ្ហាមិនរំពឹងទុកមួយបានកើតឡើង។ សូមព្យាយាមម្តងទៀតនៅពេលក្រោយ។',
+      technicalDetails: errorStr,
     );
   }
 
   static String _mapSupabaseAuthError(String msg) {
     final lower = msg.toLowerCase();
+    if (lower.contains('over_email_send_rate_limit') ||
+        lower.contains('rate limit') ||
+        lower.contains('email rate limit exceeded')) {
+      return 'បានលើសកម្រិតផ្ញើ Email របស់ Supabase! សូមចូលទៅបិទ "Confirm email" ក្នុង Supabase Dashboard (Auth > Providers > Email) ដើម្បីបង្កើតគណនីបានភ្លាមៗ។';
+    }
+    if (lower.contains('user already registered') || lower.contains('already exists')) {
+      return 'អ៊ីមែលនេះមានគណនីរួចហើយ! សូមចូលទៅកាន់ផ្ទាំង "ចូលគណនី (Sign In)"។';
+    }
     if (lower.contains('email not confirmed') || lower.contains('email_not_confirmed')) {
-      return 'អ៊ីមែលនេះមិនទាន់បាន Confirm នៅឡើយទេ។ សូមពិនិត្យមើល Inbox អ៊ីមែលរបស់អ្នក ឬបិទ "Confirm email" ក្នុង Supabase Dashboard (Auth > Providers > Email)។';
+      return 'អ៊ីមែលនេះមិនទាន់បាន Confirm នៅឡើយទេ។ សូមពិនិត្យមើល Inbox អ៊ីមែលរបស់អ្នក ឬចូលទៅបិទ "Confirm email" ក្នុង Supabase Dashboard (Auth > Providers > Email)។';
     }
     if (lower.contains('invalid login credentials') || lower.contains('invalid_credentials')) {
       return 'អ៊ីមែល ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវទេ។ សូមពិនិត្យឡើងវិញ។';
     }
-    if (lower.contains('user already registered') || lower.contains('already exists')) {
-      return 'អ៊ីមែលនេះមានគណនីរួចហើយ។ សូមចូលប្រើប្រាស់។';
-    }
-    if (lower.contains('password should be at least')) {
+    if (lower.contains('password should be at least') || lower.contains('weak_password')) {
       return 'ពាក្យសម្ងាត់ត្រូវមានយ៉ាងហោចណាស់ ៦ តួអក្សរ។';
     }
     if (lower.contains('user not found')) {
       return 'រកមិនឃើញគណនីនេះទេ។ សូមចុះឈ្មោះគណនីថ្មី។';
-    }
-    if (lower.contains('over_email_send_rate_limit') || lower.contains('rate limit')) {
-      return 'បានផ្ញើសំណើច្រើនដងពេក។ សូមរង់ចាំបន្តិចសិន។';
     }
     return msg.isNotEmpty ? msg : 'ការផ្ទៀងផ្ទាត់គណនីមិនជោគជ័យ។ សូមព្យាយាមម្តងទៀត។';
   }

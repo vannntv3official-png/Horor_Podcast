@@ -118,6 +118,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
         data: {'display_name': displayName.trim()},
       );
       if (response.user != null) {
+        if (response.user!.identities?.isEmpty ?? false) {
+          state = state.copyWith(
+            isLoading: false,
+            error: const AuthException(
+              message: 'អ៊ីមែលនេះមានគណនីរួចហើយ! សូមចូលទៅកាន់ផ្ទាំង "ចូលគណនី (Sign In)"។',
+            ),
+          );
+          return false;
+        }
         if (response.session != null) {
           state = state.copyWith(
             user: response.user,

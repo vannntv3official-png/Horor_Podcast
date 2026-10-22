@@ -45,7 +45,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   void _finishOnboarding() async {
     await ref.read(localStorageProvider).setHasSeenOnboarding(true);
     if (mounted) {
-      context.go('/');
+      context.go('/login');
     }
   }
 
