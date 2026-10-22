@@ -9,7 +9,6 @@ import '../../../core/widgets/app_loading_shimmer.dart';
 import '../../../core/widgets/glass_app_bar.dart';
 import '../../../shared/models/story_model.dart';
 import '../../../shared/providers/supabase_provider.dart';
-import '../../audio_player/presentation/mini_player.dart';
 import '../../home/presentation/home_screen.dart';
 import '../../home/presentation/widgets/category_pills.dart';
 import '../../home/presentation/widgets/story_card_vertical.dart';
@@ -96,11 +95,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         title: 'ស្វែងរក និងរុករក (Explore)',
         showBack: true,
       ),
-      body: Stack(
-        children: [
-          CustomScrollView(
-            slivers: [
-              // Search Input Box
+      body: CustomScrollView(
+        slivers: [
+          // Search Input Box
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -278,16 +275,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               ),
             ],
           ),
-
-          // Docked MiniPlayer
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: MiniPlayer(),
-          ),
-        ],
-      ),
-    );
-  }
-}
+        );
+      }
+    }

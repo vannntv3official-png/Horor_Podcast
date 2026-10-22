@@ -10,7 +10,6 @@ import '../../../shared/models/category_model.dart';
 import '../../../shared/models/story_model.dart';
 import '../../../shared/providers/auth_provider.dart';
 import '../../../shared/providers/supabase_provider.dart';
-import '../../audio_player/presentation/mini_player.dart';
 import '../../audio_player/presentation/player_controller.dart';
 import '../../history/presentation/history_screen.dart';
 import '../../stories/data/stories_repository.dart';
@@ -80,12 +79,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      body: Stack(
-        children: [
-          RefreshIndicator(
-            onRefresh: _refresh,
-            color: AppColors.accent,
-            child: CustomScrollView(
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        color: AppColors.accent,
+        child: CustomScrollView(
               slivers: [
                 // Top App Bar with Greeting & Search Icon
                 SliverAppBar(
@@ -349,23 +346,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
 
-                // Extra padding for mini-player
                 const SliverToBoxAdapter(
-                  child: SizedBox(height: 100),
+                  child: SizedBox(height: 24),
                 ),
               ],
             ),
           ),
-
-          // Docked MiniPlayer
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: MiniPlayer(),
-          ),
-        ],
-      ),
-    );
-  }
-}
+        );
+      }
+    }

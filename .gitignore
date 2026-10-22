@@ -64,3 +64,6 @@ admin/.env.local
 # Test outputs
 test-results/
 supabase/.temp/
+
+/android/build/
+/android/.gradle/
