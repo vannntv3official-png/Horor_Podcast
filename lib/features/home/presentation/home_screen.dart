@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/ad_service.dart';
 import '../../../core/widgets/app_error_state.dart';
 import '../../../core/widgets/app_loading_shimmer.dart';
 import '../../../shared/models/category_model.dart';
@@ -338,6 +339,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                     ),
                     error: (_, __) => const SizedBox.shrink(),
+                  ),
+                ),
+
+                // Monetization Banner Ad (Auto-hidden for VIPs)
+                const SliverToBoxAdapter(
+                  child: Center(
+                    child: AdBannerWidget(),
                   ),
                 ),
 

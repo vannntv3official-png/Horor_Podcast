@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide LocalStorage;
 import 'app/app.dart';
 import 'app/config/env_config.dart';
 import 'core/logging/app_logger.dart';
+import 'core/services/ad_service.dart';
 import 'core/storage/local_storage.dart';
 import 'features/audio_player/data/audio_handler.dart';
 import 'features/audio_player/presentation/player_controller.dart';
@@ -54,7 +55,10 @@ Future<void> bootstrap() async {
     audioHandler = KhmerAudioHandler();
   }
 
-  // 4. Guaranteed to run the app immediately
+  // 4. Initialize AdMob in background without blocking startup
+  unawaited(AdService.initialize());
+
+  // 5. Guaranteed to run the app immediately
   runApp(
     ProviderScope(
       overrides: [

@@ -143,20 +143,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 decoration: BoxDecoration(
                                   color: isGuest
                                       ? AppColors.secondaryLight
-                                      : AppColors.primaryContainer.withOpacity(0.6),
+                                      : (profile?.isVipActive == true
+                                          ? const Color(0xFFC89B3C).withValues(alpha: 0.15)
+                                          : AppColors.primaryContainer.withValues(alpha: 0.6)),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: isGuest
                                         ? AppColors.outlineVariant
-                                        : AppColors.primary.withOpacity(0.3),
+                                        : (profile?.isVipActive == true
+                                            ? const Color(0xFFC89B3C)
+                                            : AppColors.primary.withValues(alpha: 0.3)),
                                   ),
                                 ),
                                 child: Text(
-                                  isGuest ? 'គណនីភ្ញៀវ' : 'សមាជិកផ្លូវការ (Member)',
+                                  isGuest
+                                      ? 'គណនីភ្ញៀវ'
+                                      : (profile?.isVipActive == true
+                                          ? '👑 VIP Member'
+                                          : 'សមាជិកផ្លូវការ (Member)'),
                                   style: TextStyle(
                                     fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: isGuest ? AppColors.textTertiary : AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                    color: isGuest
+                                        ? AppColors.textTertiary
+                                        : (profile?.isVipActive == true
+                                            ? const Color(0xFFC89B3C)
+                                            : AppColors.primary),
                                   ),
                                 ),
                               ),
@@ -209,6 +221,91 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ],
                   ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // VIP Membership Promotion or Active Status Banner
+              GestureDetector(
+                onTap: () => context.push('/vip'),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: profile?.isVipActive == true
+                          ? [const Color(0xFF2E1A47), const Color(0xFF1D102F)]
+                          : [const Color(0xFF25133A), const Color(0xFF160D23)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFFC89B3C).withValues(alpha: 0.5),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFC89B3C).withValues(alpha: 0.12),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFFC89B3C).withValues(alpha: 0.15),
+                          border: Border.all(color: const Color(0xFFC89B3C), width: 1.5),
+                        ),
+                        child: const Icon(
+                          Icons.workspace_premium_rounded,
+                          color: Color(0xFFC89B3C),
+                          size: 26,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              profile?.isVipActive == true
+                                  ? '👑 VIP Member សកម្ម'
+                                  : 'ដំឡើងទៅកាន់ VIP Member',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              profile?.isVipActive == true
+                                  ? (profile?.vipExpiresAt != null
+                                      ? 'ផុតកំណត់នៅថ្ងៃ: ${Formatters.formatDate(profile!.vipExpiresAt!)}'
+                                      : 'សមាជិក VIP ពេញសិទ្ធិ (គ្មានកាលកំណត់)')
+                                  : 'ស្តាប់គ្មានពាណិជ្ជកម្ម • ដោះសោរគ្រប់ភាគ • HD Audio',
+                              style: TextStyle(
+                                color: profile?.isVipActive == true
+                                    ? const Color(0xFFC89B3C)
+                                    : Colors.white70,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: Color(0xFFC89B3C),
+                        size: 16,
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

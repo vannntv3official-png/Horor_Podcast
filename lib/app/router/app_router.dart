@@ -9,6 +9,7 @@ import '../../features/explore/presentation/explore_screen.dart';
 import '../../features/favorites/presentation/favorites_screen.dart';
 import '../../features/history/presentation/history_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/monetization/presentation/vip_subscription_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/stories/presentation/story_details_screen.dart';
@@ -86,6 +87,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final storyId = state.pathParameters['id'] ?? '';
           return StoryDetailsScreen(storyId: storyId);
         },
+      ),
+      GoRoute(
+        path: '/vip',
+        builder: (context, state) => const VipSubscriptionScreen(),
       ),
 
       // Bottom Navigation Shell

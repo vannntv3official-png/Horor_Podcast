@@ -7,6 +7,8 @@ export interface UserProfile {
   preferred_language: string;
   notifications_enabled: boolean;
   role?: UserRole;
+  is_vip?: boolean;
+  vip_expires_at?: string | null;
   created_at: string;
   updated_at: string;
 }
