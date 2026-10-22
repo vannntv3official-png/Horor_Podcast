@@ -17,3 +17,12 @@
 -keep class kotlin.coroutines.Continuation { *; }
 -keep class kotlin.coroutines.intrinsics.CoroutineSingletons { *; }
 -keep class kotlin.coroutines.intrinsics.IntrinsicsKt { *; }
+
+# Google Mobile Ads SDK (AdMob)
+-keep public class com.google.android.gms.ads.** {
+   public *;
+}
+-keep public class com.google.ads.** {
+   public *;
+}
+-dontwarn com.google.android.gms.ads.**

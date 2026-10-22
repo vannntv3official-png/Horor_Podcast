@@ -43,7 +43,7 @@ dependencies:
   qr_flutter: ^4.1.0
 
   # Monetization (Google AdMob)
-  google_mobile_ads: ^5.2.0
+  google_mobile_ads: ^9.2.0
 
 dev_dependencies:
   flutter_test:
