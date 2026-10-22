@@ -6,6 +6,7 @@ import { StoryList } from '../../features/stories/StoryList';
 import { EpisodeList } from '../../features/episodes/EpisodeList';
 import { CategoryList } from '../../features/categories/CategoryList';
 import { UserList } from '../../features/users/UserList';
+import { PaymentList } from '../../features/payments/PaymentList';
 import { AuditLogsList } from '../../features/audit_logs/AuditLogsList';
 import { SettingsView } from '../../features/settings/SettingsView';
 
@@ -25,6 +26,8 @@ export const AdminLayout: React.FC = () => {
         return 'ប្រភេទរឿង (Categories)';
       case 'users':
         return 'គ្រប់គ្រងអ្នកប្រើប្រាស់ (Users)';
+      case 'payments':
+        return 'ការទូទាត់ប្រាក់ VIP (KHQR Payments)';
       case 'audit_logs':
         return 'កំណត់ហេតុសកម្មភាព (Audit Logs)';
       case 'settings':
@@ -55,6 +58,7 @@ export const AdminLayout: React.FC = () => {
           {activeTab === 'episodes' && <EpisodeList />}
           {activeTab === 'categories' && <CategoryList />}
           {activeTab === 'users' && <UserList />}
+          {activeTab === 'payments' && <PaymentList />}
           {activeTab === 'audit_logs' && <AuditLogsList />}
           {activeTab === 'settings' && <SettingsView />}
         </main>

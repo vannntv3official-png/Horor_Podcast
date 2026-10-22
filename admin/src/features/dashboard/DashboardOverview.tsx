@@ -16,6 +16,7 @@ import {
   Clock3,
   Star,
   ExternalLink,
+  Crown,
 } from 'lucide-react';
 
 interface DashboardOverviewProps {
@@ -44,6 +45,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
     listeningEventsCount: 0,
     totalAudioBytes: 0,
     totalDurationSeconds: 0,
+    vipUsersCount: 0,
+    pendingPaymentsCount: 0,
+    totalRevenueUsd: 0,
   });
 
   const [trendData, setTrendData] = useState<TrendDay[]>([]);
@@ -63,6 +67,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
         recentStoriesRes,
         recentEpisodesRes,
         recentEventsRes,
+        vipProfilesRes,
+        transactionsRes,
       ] = await Promise.all([
         supabase.from('stories').select('id, status, is_featured'),
         supabase.from('episodes').select('id, status, duration_seconds, audio_size_bytes'),
@@ -77,6 +83,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
           .from('listening_events')
           .select('created_at')
           .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+        // Fetch VIP metrics
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_vip', true),
+        supabase.from('payment_transactions').select('amount_usd, status'),
       ]);
 
       const storiesList = (storiesRes.data as Array<{ id: string; status: string; is_featured: boolean }>) || [];
@@ -119,6 +128,12 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
         d.count = daysMap[d.dateKey] || 0;
       });
 
+      const txList = (transactionsRes.data as Array<{ amount_usd: number; status: string }>) || [];
+      const pendingTx = txList.filter((t) => t.status === 'pending').length;
+      const approvedRevenue = txList
+        .filter((t) => t.status === 'approved')
+        .reduce((sum, t) => sum + Number(t.amount_usd || 0), 0);
+
       startTransition(() => {
         setMetrics({
           storiesCount: storiesList.length,
@@ -131,6 +146,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
           listeningEventsCount: eventsRes.count || 0,
           totalAudioBytes: totalBytes,
           totalDurationSeconds: totalSeconds,
+          vipUsersCount: vipProfilesRes.count || 0,
+          pendingPaymentsCount: pendingTx,
+          totalRevenueUsd: approvedRevenue,
         });
 
         setTrendData(daysArr);
@@ -210,6 +228,14 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
       icon: Play,
       tab: 'dashboard',
       color: 'bg-rose-50 text-rose-700',
+    },
+    {
+      title: 'ប្រាក់ចំណូល VIP (Revenue)',
+      subtitle: `${metrics.vipUsersCount} សមាជិក VIP • ${metrics.pendingPaymentsCount} រង់ចាំ`,
+      count: `$${metrics.totalRevenueUsd.toFixed(2)}`,
+      icon: Crown,
+      tab: 'payments',
+      color: 'bg-amber-50 text-[#C89B3C]',
     },
   ];
 

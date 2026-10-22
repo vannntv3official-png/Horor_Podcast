@@ -74,6 +74,25 @@ export interface AuditLog {
   profiles?: { display_name: string | null } | null;
 }
 
+export interface PaymentTransaction {
+  id: string;
+  user_id: string;
+  plan_id: 'vip_1_month' | 'vip_3_months' | 'vip_1_year' | string;
+  amount_usd: number;
+  amount_khr: number;
+  payment_method: string;
+  transaction_ref: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  sender_name?: string | null;
+  sender_phone?: string | null;
+  slip_image_url?: string | null;
+  admin_notes?: string | null;
+  created_at: string;
+  updated_at: string;
+  user_display_name?: string;
+  user_avatar?: string | null;
+}
+
 export interface DashboardMetrics {
   totalStories: number;
   totalEpisodes: number;

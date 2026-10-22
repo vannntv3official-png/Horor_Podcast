@@ -2,7 +2,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../shared/providers/auth_provider.dart';
 import '../../../shared/providers/supabase_provider.dart';
 
@@ -63,7 +65,121 @@ class VipSubscriptionScreen extends ConsumerStatefulWidget {
 }
 
 class _VipSubscriptionScreenState extends ConsumerState<VipSubscriptionScreen> {
-  int _selectedPlanIndex = 1; // Default to 3 months popular
+  int _selectedPlanIndex = 1; // Default to 3 months
+  List<Map<String, dynamic>> _userTransactions = [];
+  RealtimeChannel? _txRealtimeChannel;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserTransactions();
+    _subscribeToTransactionChanges();
+  }
+
+  @override
+  void dispose() {
+    _txRealtimeChannel?.unsubscribe();
+    super.dispose();
+  }
+
+  /// Fetch user's recent orders from Supabase
+  Future<void> _fetchUserTransactions() async {
+    final user = ref.read(authProvider).user;
+    if (user == null) return;
+
+    try {
+      final supabase = ref.read(supabaseClientProvider);
+      final res = await supabase
+          .from('payment_transactions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', ascending: false)
+          .limit(5);
+
+      if (mounted) {
+        setState(() {
+          _userTransactions = List<Map<String, dynamic>>.from(res);
+        });
+      }
+    } catch (_) {
+      // Gracefully continue
+    }
+  }
+
+  /// Real-time live synchronization with Admin Dashboard approval
+  void _subscribeToTransactionChanges() {
+    final user = ref.read(authProvider).user;
+    if (user == null) return;
+
+    final supabase = ref.read(supabaseClientProvider);
+    _txRealtimeChannel = supabase
+        .channel('user-payment-sync-${user.id}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'payment_transactions',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: user.id,
+          ),
+          callback: (payload) {
+            _fetchUserTransactions();
+            final record = payload.newRecord;
+            if (record['status'] == 'approved') {
+              // Immediately refresh profile so VIP badge and ad-suppression take effect
+              ref.read(authProvider.notifier).refreshProfile();
+              _showVipApprovedCelebration();
+            }
+          },
+        )
+        .subscribe();
+  }
+
+  void _showVipApprovedCelebration() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1D102F),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: Color(0xFFC89B3C), width: 2),
+        ),
+        title: const Column(
+          children: [
+            Icon(Icons.workspace_premium_rounded, color: Color(0xFFC89B3C), size: 52),
+            SizedBox(height: 10),
+            Text(
+              'អបអរសាទរ! VIP សកម្មហើយ 🎉',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: const Text(
+          'គណនីរបស់អ្នកត្រូវបាន Admin អនុម័តជាសមាជិក VIP រួចរាល់ហើយ! រាល់ការផ្សាយពាណិជ្ជកម្មត្រូវបានលាក់ទាំងស្រុង។ សូមរីករាយជាមួយរឿងនិទានខ្មោចដ៏រន្ធត់!',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          Center(
+            child: ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFC89B3C),
+                foregroundColor: const Color(0xFF1D102F),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+              ),
+              child: const Text('រីករាយស្តាប់ឥឡូវនេះ', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _openKhqrSheet(VipPlan plan) {
     final user = ref.read(authProvider).user;
@@ -87,6 +203,7 @@ class _VipSubscriptionScreenState extends ConsumerState<VipSubscriptionScreen> {
         plan: plan,
         userId: user.id,
         transactionRef: randomRef,
+        onSubmitted: () => _fetchUserTransactions(),
       ),
     );
   }
@@ -95,6 +212,9 @@ class _VipSubscriptionScreenState extends ConsumerState<VipSubscriptionScreen> {
   Widget build(BuildContext context) {
     final profile = ref.watch(authProvider).profile;
     final isVip = profile?.isVipActive ?? false;
+
+    // Check if there's any pending transaction
+    final pendingTx = _userTransactions.where((t) => t['status'] == 'pending').toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F0818),
@@ -111,7 +231,7 @@ class _VipSubscriptionScreenState extends ConsumerState<VipSubscriptionScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Column(
           children: [
-            // Crown Hero
+            // Crown Hero Card
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -161,20 +281,82 @@ class _VipSubscriptionScreenState extends ConsumerState<VipSubscriptionScreen> {
                   const SizedBox(height: 6),
                   Text(
                     isVip
-                        ? 'អ្នកជាសមាជិក VIP រួចរាល់ហើយ! (សូមអរគុណសម្រាប់ការគាំទ្រ)'
-                        : 'បទពិសោធន៍ស្តាប់រឿងខ្មោចគ្មានដែនកំណត់ គ្មានពាណិជ្ជកម្មរំខាន',
+                        ? 'អ្នកកំពុងរីករាយជាមួយគណនី VIP (គ្មានការរំខាន)'
+                        : 'ស្តាប់រឿងនិទានខ្មោចដ៏រន្ធត់ដោយគ្មានការផ្សាយពាណិជ្ជកម្មរំខាន',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: isVip ? const Color(0xFFC89B3C) : Colors.white70,
-                      fontSize: 13,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
                       height: 1.4,
                     ),
                   ),
+                  if (isVip && profile?.vipExpiresAt != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC89B3C).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFC89B3C)),
+                      ),
+                      child: Text(
+                        'ផុតកំណត់: ${DateFormat('dd-MMM-yyyy').format(profile!.vipExpiresAt!)}',
+                        style: const TextStyle(
+                          color: Color(0xFFC89B3C),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+
+            // Pending Approval Notification Alert
+            if (pendingTx.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.access_time_rounded, color: Colors.amber, size: 28),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'កំពុងរង់ចាំការផ្ទៀងផ្ទាត់ (Pending)',
+                            style: TextStyle(
+                              color: Colors.amber,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'អ្នកបានផ្ញើសំណើ (Ref: ${pendingTx.first['transaction_ref']})។ នៅពេល Admin អនុម័ត ប្រព័ន្ធនឹងបើកសិទ្ធិ VIP ជូនភ្លាមៗ!',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
 
             // VIP Perks List
             Container(
@@ -185,39 +367,23 @@ class _VipSubscriptionScreenState extends ConsumerState<VipSubscriptionScreen> {
                 border: Border.all(color: const Color(0xFF2E1A47)),
               ),
               child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'អត្ថប្រយោជន៍ពិសេសរបស់ VIP:',
-                    style: TextStyle(
-                      color: Color(0xFFC89B3C),
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 14),
                   _VipPerkRow(
                     icon: Icons.block_rounded,
-                    title: 'គ្មានផ្ទាំងពាណិជ្ជកម្ម (100% Ad-Free)',
-                    subtitle: 'ស្តាប់រឿងខ្មោចដោយរលូន គ្មានការរំខានផ្ទាំងផ្សាយ',
+                    title: 'គ្មានការផ្សាយពាណិជ្ជកម្ម (Zero Ads)',
+                    subtitle: 'បិទរាល់ផ្ទាំង Banner, Video និង Interstitial Ads ទាំងអស់',
                   ),
-                  SizedBox(height: 12),
-                  _VipPerkRow(
-                    icon: Icons.stars_rounded,
-                    title: 'ស្តាប់ភាគថ្មីៗមុនគេ (Early Access)',
-                    subtitle: 'ទទួលបានរឿង និងភាគថ្មីៗស្តាប់មុនគេ ១ សប្តាហ៍',
-                  ),
-                  SizedBox(height: 12),
-                  _VipPerkRow(
-                    icon: Icons.download_done_rounded,
-                    title: 'ទាញយកស្តាប់ Offline គ្មានដែនកំណត់',
-                    subtitle: 'រក្សាទុករឿងពេញចិត្តស្តាប់ពេលគ្មានអ៊ីនធឺណិត',
-                  ),
-                  SizedBox(height: 12),
+                  Divider(color: Color(0xFF2E1A47), height: 24),
                   _VipPerkRow(
                     icon: Icons.graphic_eq_rounded,
-                    title: 'សំឡេងច្បាស់កម្រិតខ្ពស់ HD Audio',
-                    subtitle: 'បទពិសោធន៍សំឡេង 3D និង Sound Effects ច្បាស់រណ្តំ',
+                    title: 'គុណភាពសំឡេងកម្រិតខ្ពស់ (HQ Audio)',
+                    subtitle: 'ស្តាប់សំឡេងនិទានរន្ធត់បែប Stereo Crystal Clear',
+                  ),
+                  Divider(color: Color(0xFF2E1A47), height: 24),
+                  _VipPerkRow(
+                    icon: Icons.star_rounded,
+                    title: 'ស្តាប់ភាគពិសេសមុនគេ (Early Access)',
+                    subtitle: 'ទទួលបានរឿងនិទានថ្មីៗមុនការចេញផ្សាយជាសាធារណៈ',
                   ),
                 ],
               ),
@@ -225,7 +391,7 @@ class _VipSubscriptionScreenState extends ConsumerState<VipSubscriptionScreen> {
 
             const SizedBox(height: 24),
 
-            // Plan Selector
+            // Plan Selector Header
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -239,6 +405,7 @@ class _VipSubscriptionScreenState extends ConsumerState<VipSubscriptionScreen> {
             ),
             const SizedBox(height: 12),
 
+            // Plans List
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -354,7 +521,7 @@ class _VipSubscriptionScreenState extends ConsumerState<VipSubscriptionScreen> {
               },
             ),
 
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
 
             // Pay Button
             SizedBox(
@@ -375,13 +542,124 @@ class _VipSubscriptionScreenState extends ConsumerState<VipSubscriptionScreen> {
                 label: Text(
                   'ទូទាត់ជាមួយ Bakong KHQR (\$${vipPlans[_selectedPlanIndex].priceUsd.toStringAsFixed(2)})',
                   style: const TextStyle(
-                    fontSize: 15,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+
+            const SizedBox(height: 28),
+
+            // User's Order History Section
+            if (_userTransactions.isNotEmpty) ...[
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'ប្រវត្តិការបញ្ជាទិញ VIP របស់ខ្ញុំ:',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _userTransactions.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (context, idx) {
+                  final tx = _userTransactions[idx];
+                  final status = tx['status'] as String? ?? 'pending';
+                  final refCode = tx['transaction_ref'] as String? ?? 'N/A';
+                  final amount = tx['amount_usd']?.toString() ?? '0.00';
+                  final date = tx['created_at'] != null
+                      ? DateFormat('dd-MM-yyyy HH:mm')
+                          .format(DateTime.parse(tx['created_at']))
+                      : '';
+
+                  Color statusColor = Colors.amber;
+                  String statusText = 'រង់ចាំពិនិត្យ';
+                  IconData statusIcon = Icons.access_time_rounded;
+
+                  if (status == 'approved') {
+                    statusColor = Colors.greenAccent;
+                    statusText = 'បានអនុម័ត';
+                    statusIcon = Icons.check_circle_rounded;
+                  } else if (status == 'rejected') {
+                    statusColor = Colors.redAccent;
+                    statusText = 'បានបដិសេធ';
+                    statusIcon = Icons.cancel_rounded;
+                  }
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF160D23),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFF2E1A47)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              refCode,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'monospace',
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              date,
+                              style: const TextStyle(color: Colors.white38, fontSize: 10),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '\$$amount',
+                              style: const TextStyle(
+                                color: Color(0xFFC89B3C),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(statusIcon, color: statusColor, size: 12),
+                                const SizedBox(width: 4),
+                                Text(
+                                  statusText,
+                                  style: TextStyle(
+                                    color: statusColor,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+            ],
           ],
         ),
       ),
@@ -403,18 +681,18 @@ class _VipPerkRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 32,
-          height: 32,
+          width: 42,
+          height: 42,
           decoration: BoxDecoration(
             color: const Color(0xFF2E1A47),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFC89B3C).withValues(alpha: 0.3)),
           ),
-          child: Icon(icon, color: const Color(0xFFC89B3C), size: 18),
+          child: Icon(icon, color: const Color(0xFFC89B3C), size: 22),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -448,11 +726,13 @@ class _KhqrPaymentSheet extends ConsumerStatefulWidget {
   final VipPlan plan;
   final String userId;
   final String transactionRef;
+  final VoidCallback? onSubmitted;
 
   const _KhqrPaymentSheet({
     required this.plan,
     required this.userId,
     required this.transactionRef,
+    this.onSubmitted,
   });
 
   @override
@@ -461,6 +741,13 @@ class _KhqrPaymentSheet extends ConsumerStatefulWidget {
 
 class _KhqrPaymentSheetState extends ConsumerState<_KhqrPaymentSheet> {
   bool _submitting = false;
+  final _phoneController = TextEditingController();
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
+  }
 
   Future<void> _handleConfirmPayment() async {
     setState(() => _submitting = true);
@@ -474,8 +761,11 @@ class _KhqrPaymentSheetState extends ConsumerState<_KhqrPaymentSheet> {
         'amount_khr': widget.plan.priceKhr,
         'payment_method': 'bakong_khqr',
         'transaction_ref': widget.transactionRef,
+        'sender_phone': _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
         'status': 'pending',
       });
+
+      widget.onSubmitted?.call();
 
       if (!mounted) return;
       Navigator.of(context).pop();
@@ -552,196 +842,239 @@ class _KhqrPaymentSheetState extends ConsumerState<_KhqrPaymentSheet> {
         color: Color(0xFF160D23),
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.white24,
-              borderRadius: BorderRadius.circular(2),
+      padding: EdgeInsets.only(
+        top: 20,
+        left: 20,
+        right: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Bakong KHQR Payment',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Bakong KHQR Payment',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'ស្កេនជាមួយ ABA, Wing, ឬ ACLEDA',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
+                    const SizedBox(height: 2),
+                    Text(
+                      'ស្កេនជាមួយ ABA, Wing, ឬ ACLEDA',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // KHQR Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              IconButton(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close_rounded, color: Colors.white70),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // KHQR Card
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                // Red Bakong KHQR Header
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE21A1A),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'KHQR',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 2,
-                        fontSize: 18,
+              child: Column(
+                children: [
+                  // Red Bakong KHQR Header
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE21A1A),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'KHQR',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                          fontSize: 18,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Khmer Horror Podcast',
-                  style: TextStyle(
-                    color: Color(0xFF1D102F),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                // QR Code
-                SizedBox(
-                  width: 200,
-                  height: 200,
-                  child: QrImageView(
-                    data: khqrData,
-                    version: QrVersions.auto,
-                    size: 200.0,
-                    eyeStyle: const QrEyeStyle(
-                      eyeShape: QrEyeShape.square,
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Khmer Horror Podcast Official',
+                    style: TextStyle(
                       color: Color(0xFF1D102F),
-                    ),
-                    dataModuleStyle: const QrDataModuleStyle(
-                      dataModuleShape: QrDataModuleShape.square,
-                      color: Color(0xFF1D102F),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
                     ),
                   ),
-                ),
-
-                const SizedBox(height: 10),
-                Text(
-                  '\$${widget.plan.priceUsd.toStringAsFixed(2)}  /  ${widget.plan.priceKhr} KHR',
-                  style: const TextStyle(
-                    color: Color(0xFFE21A1A),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                  const Text(
+                    'Bakong ID: khmerhorror@bkng',
+                    style: TextStyle(
+                      color: Colors.black54,
+                      fontSize: 11,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
+                  const SizedBox(height: 10),
 
-          const SizedBox(height: 16),
-
-          // Reference & Instructions
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF221437),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF2E1A47)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Ref: ${widget.transactionRef}',
-                  style: const TextStyle(
-                    color: Color(0xFFC89B3C),
-                    fontFamily: 'monospace',
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                  // QR Code
+                  SizedBox(
+                    width: 190,
+                    height: 190,
+                    child: QrImageView(
+                      data: khqrData,
+                      version: QrVersions.auto,
+                      size: 190.0,
+                      eyeStyle: const QrEyeStyle(
+                        eyeShape: QrEyeShape.square,
+                        color: Color(0xFF1D102F),
+                      ),
+                      dataModuleStyle: const QrDataModuleStyle(
+                        dataModuleShape: QrDataModuleShape.square,
+                        color: Color(0xFF1D102F),
+                      ),
+                    ),
                   ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    Clipboard.setData(ClipboardData(text: widget.transactionRef));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('បានចម្លង Ref ID!'), duration: Duration(seconds: 1)),
-                    );
-                  },
-                  child: const Text(
-                    'ចម្លង (Copy)',
-                    style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+
+                  const SizedBox(height: 10),
+                  Text(
+                    '\$${widget.plan.priceUsd.toStringAsFixed(2)}  /  ${widget.plan.priceKhr} KHR',
+                    style: const TextStyle(
+                      color: Color(0xFFE21A1A),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Confirmation Button
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _submitting ? null : _handleConfirmPayment,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFC89B3C),
-                foregroundColor: const Color(0xFF1D102F),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ],
               ),
-              child: _submitting
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(color: Color(0xFF1D102F), strokeWidth: 2.5),
-                    )
-                  : const Text(
-                      'ខ្ញុំបានទូទាត់រួចរាល់ (I Have Paid)',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
             ),
-          ),
-          const SizedBox(height: 10),
-        ],
+
+            const SizedBox(height: 14),
+
+            // Reference & Copy
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF221437),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF2E1A47)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Ref: ${widget.transactionRef}',
+                    style: const TextStyle(
+                      color: Color(0xFFC89B3C),
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: widget.transactionRef));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('បានចម្លង Ref ID!'), duration: Duration(seconds: 1)),
+                      );
+                    },
+                    child: const Text(
+                      'ចម្លង (Copy)',
+                      style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Optional Phone / Telegram verification input
+            TextFormField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              decoration: InputDecoration(
+                labelText: 'លេខទូរស័ព្ទ ឬ Telegram សម្រាប់ផ្ទៀងផ្ទាត់ (ស្រេចចិត្ត)',
+                labelStyle: const TextStyle(color: Colors.white54, fontSize: 12),
+                prefixIcon: const Icon(Icons.phone_iphone_rounded, color: Color(0xFFC89B3C), size: 18),
+                filled: true,
+                fillColor: const Color(0xFF221437),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFF2E1A47)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFF2E1A47)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFFC89B3C)),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            // Confirmation Button
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _submitting ? null : _handleConfirmPayment,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFC89B3C),
+                  foregroundColor: const Color(0xFF1D102F),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: _submitting
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(color: Color(0xFF1D102F), strokeWidth: 2.5),
+                      )
+                    : const Text(
+                        'ខ្ញុំបានទូទាត់រួចរាល់ (I Have Paid)',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
       ),
     );
   }

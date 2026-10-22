@@ -44,6 +44,7 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final SupabaseClient _supabase;
   final Ref _ref;
+  RealtimeChannel? _profileChannel;
 
   AuthNotifier(this._supabase, this._ref) : super(const AuthState()) {
     _init();
@@ -55,6 +56,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(user: currentUser, isGuest: false);
       _ref.read(localStorageProvider).setHasSeenOnboarding(true);
       _fetchProfile(currentUser.id);
+      _subscribeToProfileChanges(currentUser.id);
     }
 
     _supabase.auth.onAuthStateChange.listen((data) {
@@ -63,11 +65,47 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = state.copyWith(user: user, isGuest: false);
         _ref.read(localStorageProvider).setHasSeenOnboarding(true);
         _fetchProfile(user.id);
+        _subscribeToProfileChanges(user.id);
       } else if (data.event == AuthChangeEvent.signedOut) {
+        _profileChannel?.unsubscribe();
         _ref.read(localStorageProvider).setHasSeenOnboarding(true);
         state = const AuthState(isGuest: true);
       }
     });
+  }
+
+  /// Real-time listener for instant synchronization with Admin Dashboard changes (VIP status, role, etc.)
+  void _subscribeToProfileChanges(String userId) {
+    try {
+      _profileChannel?.unsubscribe();
+      _profileChannel = _supabase
+          .channel('realtime:profile:$userId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'profiles',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'id',
+              value: userId,
+            ),
+            callback: (payload) {
+              AppLogger.info('Live profile change detected from server/admin: ${payload.eventType}');
+              _fetchProfile(userId);
+            },
+          )
+          .subscribe();
+    } catch (e) {
+      AppLogger.warning('Failed setting up profile realtime listener: $e');
+    }
+  }
+
+  /// Manually force-refresh user profile from database
+  Future<void> refreshProfile() async {
+    final user = state.user;
+    if (user != null) {
+      await _fetchProfile(user.id);
+    }
   }
 
   Future<void> _fetchProfile(String userId) async {

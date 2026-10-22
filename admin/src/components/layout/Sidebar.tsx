@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../features/auth/AuthContext';
+import { supabase } from '../../lib/supabase';
 import {
   LayoutDashboard,
   BookOpen,
   Headphones,
   FolderTree,
   Users,
+  CreditCard,
   ScrollText,
   Settings,
   LogOut,
@@ -26,6 +28,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClose,
 }) => {
   const { user, role, logout } = useAuth();
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+
+  useEffect(() => {
+    const fetchPending = async () => {
+      try {
+        const { count } = await supabase
+          .from('payment_transactions')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending');
+        setPendingOrdersCount(count || 0);
+      } catch (err) {
+        console.error('Failed fetching pending transactions count', err);
+      }
+    };
+
+    fetchPending();
+
+    // Realtime subscription for pending badge
+    const channel = supabase
+      .channel('sidebar-pending-orders')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'payment_transactions' },
+        () => fetchPending()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const navItems = [
     { id: 'dashboard', label: 'ផ្ទាំងគ្រប់គ្រង (Dashboard)', icon: LayoutDashboard },
@@ -33,6 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'episodes', label: 'គ្រប់គ្រងភាគ (Episodes)', icon: Headphones },
     { id: 'categories', label: 'ប្រភេទរឿង (Categories)', icon: FolderTree },
     { id: 'users', label: 'អ្នកប្រើប្រាស់ (Users)', icon: Users },
+    { id: 'payments', label: 'ការបង់ប្រាក់ VIP (Payments)', icon: CreditCard, badge: pendingOrdersCount },
     { id: 'audit_logs', label: 'Audit Logs', icon: ScrollText },
     { id: 'settings', label: 'ការកំណត់ (Settings)', icon: Settings },
   ];
@@ -91,14 +125,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.id}
                 onClick={() => handleSelectTab(item.id)}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-xs transition-all cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-xs transition-all cursor-pointer ${
                   isActive
                     ? 'bg-[#1D102F] text-white shadow-md shadow-purple-950/15'
                     : 'text-[#635C6E] hover:bg-white/60 hover:text-[#1D102F]'
                 }`}
               >
-                <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-[#C89B3C]' : 'text-[#8A7B9B]'}`} />
-                <span className="truncate">{item.label}</span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-[#C89B3C]' : 'text-[#8A7B9B]'}`} />
+                  <span className="truncate">{item.label}</span>
+                </div>
+                {item.badge && item.badge > 0 ? (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white font-bold text-[10px] animate-pulse">
+                    {item.badge}
+                  </span>
+                ) : null}
               </button>
             );
           })}
