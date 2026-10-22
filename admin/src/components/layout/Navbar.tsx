@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../features/auth/AuthContext';
-import { ShieldCheck, Database, Menu } from 'lucide-react';
+import { isConfigured } from '../../lib/supabase';
+import { ShieldCheck, Database, Menu, AlertCircle } from 'lucide-react';
 
 interface NavbarProps {
   title: string;
@@ -29,11 +30,19 @@ export const Navbar: React.FC<NavbarProps> = ({ title, onToggleSidebar }) => {
 
       <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
         {/* Backend Connected Indicator */}
-        <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] sm:text-xs font-medium">
-          <Database className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-          <span className="hidden sm:inline">Supabase Online</span>
-          <span className="sm:hidden font-bold">Online</span>
-        </div>
+        {isConfigured ? (
+          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] sm:text-xs font-medium">
+            <Database className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+            <span className="hidden sm:inline">Supabase Online</span>
+            <span className="sm:hidden font-bold">Online</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-amber-50 border border-amber-300 text-amber-900 text-[11px] sm:text-xs font-medium">
+            <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+            <span className="hidden sm:inline">Vercel Env Missing</span>
+            <span className="sm:hidden font-bold">Demo</span>
+          </div>
+        )}
 
         {/* Role Badge */}
         <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-[#1D102F] text-[#C89B3C] text-[11px] sm:text-xs font-semibold">

@@ -40,6 +40,7 @@ export const EpisodeFormModal: React.FC<EpisodeFormModalProps> = ({
   // Audio Preview state
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+  const [previewTime, setPreviewTime] = useState(0);
 
   useEffect(() => {
     supabase
@@ -304,31 +305,58 @@ export const EpisodeFormModal: React.FC<EpisodeFormModalProps> = ({
 
             {audioPath ? (
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 rounded-xl bg-[#EDE8F5]/60 border border-[#E2DCEB]">
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={togglePreview}
-                      className="w-10 h-10 rounded-xl bg-[#1D102F] text-[#C89B3C] flex items-center justify-center cursor-pointer shadow-sm"
-                    >
-                      {isPlayingPreview ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                    </button>
-                    <div>
-                      <p className="text-xs font-bold text-[#1D102F] truncate max-w-xs">{audioPath}</p>
-                      <p className="text-[11px] text-[#635C6E]">
-                        ទំហំ: {formatBytes(audioSizeBytes)} • រយៈពេល: {formatDuration(durationSeconds)}
-                      </p>
+                <div className="p-3.5 rounded-xl bg-[#EDE8F5]/60 border border-[#E2DCEB] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <button
+                        type="button"
+                        onClick={togglePreview}
+                        className="w-10 h-10 rounded-xl bg-[#1D102F] text-[#C89B3C] flex items-center justify-center cursor-pointer shadow-sm hover:scale-105 transition-all flex-shrink-0"
+                      >
+                        {isPlayingPreview ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                      </button>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-[#1D102F] truncate max-w-xs">{audioPath}</p>
+                        <p className="text-[11px] text-[#635C6E]">
+                          ទំហំ: {formatBytes(audioSizeBytes)} • រយៈពេល: {formatDuration(durationSeconds)}
+                        </p>
+                      </div>
                     </div>
+                    <label className="text-xs font-semibold text-[#C89B3C] hover:underline cursor-pointer flex-shrink-0">
+                      ប្តូរឯកសារ
+                      <input type="file" accept="audio/mpeg,audio/mp3,audio/m4a" onChange={handleAudioUpload} className="hidden" />
+                    </label>
                   </div>
-                  <label className="text-xs font-semibold text-[#C89B3C] hover:underline cursor-pointer">
-                    ប្តូរឯកសារ
-                    <input type="file" accept="audio/mpeg,audio/mp3,audio/m4a" onChange={handleAudioUpload} className="hidden" />
-                  </label>
+
+                  {/* Scrubber slider */}
+                  <div className="flex items-center gap-2 text-[10px] font-mono text-[#635C6E]">
+                    <span className="w-10 text-right">{formatDuration(Math.round(previewTime))}</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={durationSeconds || 1}
+                      value={previewTime}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setPreviewTime(val);
+                        if (audioRef.current) {
+                          audioRef.current.currentTime = val;
+                        }
+                      }}
+                      className="flex-1 h-1.5 rounded-lg bg-[#E2DCEB] accent-[#1D102F] cursor-pointer"
+                    />
+                    <span className="w-10">{formatDuration(durationSeconds || 0)}</span>
+                  </div>
                 </div>
+
                 <audio
                   ref={audioRef}
                   src={getPublicStorageUrl(BUCKETS.PODCAST_AUDIO, audioPath)}
-                  onEnded={() => setIsPlayingPreview(false)}
+                  onTimeUpdate={() => setPreviewTime(audioRef.current?.currentTime || 0)}
+                  onEnded={() => {
+                    setIsPlayingPreview(false);
+                    setPreviewTime(0);
+                  }}
                   className="hidden"
                 />
               </div>
@@ -341,7 +369,7 @@ export const EpisodeFormModal: React.FC<EpisodeFormModalProps> = ({
                   <span className="text-xs font-semibold text-[#1D102F]">
                     {uploading ? 'កំពុងបង្ហោះសំឡេង...' : 'ចុចទីនេះដើម្បីជ្រើសរើសឯកសារ MP3'}
                   </span>
-                  <span className="text-[11px] text-[#8A7B9B] mt-0.5">គាំទ្រ MP3, M4A ទំហំអតិបរមា 100MB</span>
+                  <span className="text-[11px] text-[#8A7B9B] mt-0.5">គាំទ្រ MP3, M4A ទំហំអតិបរមា 50MB</span>
                   <input type="file" accept="audio/mpeg,audio/mp3,audio/m4a" onChange={handleAudioUpload} className="hidden" />
                 </label>
                 {uploading && (
