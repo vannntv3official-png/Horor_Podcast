@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../auth/AuthContext';
 import type { PaymentTransaction } from '../../types';
 import { formatDate } from '../../lib/utils';
 import {
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 
 export const PaymentList: React.FC = () => {
+  const { user: currentUser } = useAuth();
   const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,6 +122,20 @@ export const PaymentList: React.FC = () => {
           .eq('id', tx.id);
       }
 
+      // Log action to admin_audit_logs
+      await supabase.from('admin_audit_logs').insert({
+        actor_user_id: currentUser?.id,
+        action: 'APPROVE_VIP_TRANSACTION',
+        entity_type: 'payment_transactions',
+        entity_id: tx.id,
+        metadata: {
+          user_id: tx.user_id,
+          plan_id: tx.plan_id,
+          amount_usd: tx.amount_usd,
+          transaction_ref: tx.transaction_ref,
+        },
+      });
+
       await fetchTransactions();
       if (selectedTx?.id === tx.id) {
         setSelectedTx(null);
@@ -153,6 +169,21 @@ export const PaymentList: React.FC = () => {
           })
           .eq('id', tx.id);
       }
+
+      // Log action to admin_audit_logs
+      await supabase.from('admin_audit_logs').insert({
+        actor_user_id: currentUser?.id,
+        action: 'REJECT_VIP_TRANSACTION',
+        entity_type: 'payment_transactions',
+        entity_id: tx.id,
+        metadata: {
+          user_id: tx.user_id,
+          plan_id: tx.plan_id,
+          amount_usd: tx.amount_usd,
+          transaction_ref: tx.transaction_ref,
+          reason,
+        },
+      });
 
       await fetchTransactions();
       if (selectedTx?.id === tx.id) {

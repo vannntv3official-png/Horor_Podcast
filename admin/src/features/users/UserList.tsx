@@ -140,6 +140,11 @@ ON CONFLICT (user_id, role) DO NOTHING;`;
       return;
     }
 
+    if (targetUserId === currentUser?.id && newRole !== 'admin') {
+      alert('អ្នកមិនអាចដកសិទ្ធិ Admin ពីគណនីផ្ទាល់ខ្លួនរបស់អ្នកបានឡើយ ដើម្បីការពារការបាត់បង់សិទ្ធិគ្រប់គ្រង។');
+      return;
+    }
+
     setUpdatingId(targetUserId);
     try {
       const { error } = await supabase

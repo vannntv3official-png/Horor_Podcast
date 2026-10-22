@@ -28,27 +28,27 @@ class AdService {
 
   // Google Official Test Ad Unit IDs (replace with your real IDs from AdMob console in production)
   static String get bannerAdUnitId {
-    if (Platform.isAndroid) {
+    if (!kIsWeb && Platform.isAndroid) {
       return 'ca-app-pub-3940256099942544/6300978111';
-    } else if (Platform.isIOS) {
+    } else if (!kIsWeb && Platform.isIOS) {
       return 'ca-app-pub-3940256099942544/2934735716';
     }
     return '';
   }
 
   static String get interstitialAdUnitId {
-    if (Platform.isAndroid) {
+    if (!kIsWeb && Platform.isAndroid) {
       return 'ca-app-pub-3940256099942544/1033173712';
-    } else if (Platform.isIOS) {
+    } else if (!kIsWeb && Platform.isIOS) {
       return 'ca-app-pub-3940256099942544/4411468910';
     }
     return '';
   }
 
   static String get rewardedAdUnitId {
-    if (Platform.isAndroid) {
+    if (!kIsWeb && Platform.isAndroid) {
       return 'ca-app-pub-3940256099942544/5224354917';
-    } else if (Platform.isIOS) {
+    } else if (!kIsWeb && Platform.isIOS) {
       return 'ca-app-pub-3940256099942544/1712485313';
     }
     return '';
