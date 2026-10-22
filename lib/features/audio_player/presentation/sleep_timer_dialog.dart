@@ -11,19 +11,25 @@ class SleepTimerDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final playerState = ref.watch(playerControllerProvider);
     final controller = ref.read(playerControllerProvider.notifier);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final primaryColor = isDark ? AppColors.darkTextPrimary : AppColors.primary;
 
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: isDark ? AppColors.darkGlassBorder : AppColors.glassBorder),
+      ),
+      backgroundColor: isDark ? const Color(0xFF1B1229) : AppColors.surface,
       title: Row(
         children: [
-          const Icon(Icons.bedtime_outlined, color: AppColors.primary),
+          Icon(Icons.bedtime_outlined, color: isDark ? AppColors.accent : AppColors.primary),
           const SizedBox(width: 10),
           Text(
             'កំណត់ម៉ោងគេង (Sleep Timer)',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+                  color: primaryColor,
                 ),
           ),
         ],
@@ -36,13 +42,13 @@ class SleepTimerDialog extends ConsumerWidget {
             return ListTile(
               leading: Icon(
                 isSelected ? Icons.check_circle : Icons.timer_outlined,
-                color: isSelected ? AppColors.accent : AppColors.secondary,
+                color: isSelected ? AppColors.accent : (isDark ? AppColors.darkTextTertiary : AppColors.secondary),
               ),
               title: Text(
                 '$minutes នាទី',
                 style: TextStyle(
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                  color: isSelected ? AppColors.accent : primaryColor,
                 ),
               ),
               onTap: () {
@@ -58,7 +64,7 @@ class SleepTimerDialog extends ConsumerWidget {
                   : Icons.stop_circle_outlined,
               color: playerState.sleepTimerAtEndOfEpisode
                   ? AppColors.accent
-                  : AppColors.secondary,
+                  : (isDark ? AppColors.darkTextTertiary : AppColors.secondary),
             ),
             title: Text(
               'ចប់ភាគនេះ (End of Episode)',
@@ -66,6 +72,7 @@ class SleepTimerDialog extends ConsumerWidget {
                 fontWeight: playerState.sleepTimerAtEndOfEpisode
                     ? FontWeight.bold
                     : FontWeight.normal,
+                color: playerState.sleepTimerAtEndOfEpisode ? AppColors.accent : primaryColor,
               ),
             ),
             onTap: () {
@@ -75,7 +82,7 @@ class SleepTimerDialog extends ConsumerWidget {
           ),
           if (playerState.sleepTimerMinutesRemaining != null ||
               playerState.sleepTimerAtEndOfEpisode) ...[
-            const Divider(color: AppColors.outline),
+            Divider(color: isDark ? AppColors.darkOutline : AppColors.outline),
             ListTile(
               leading: const Icon(Icons.close_rounded, color: AppColors.error),
               title: const Text(

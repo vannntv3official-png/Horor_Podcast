@@ -6,7 +6,7 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final Widget? leading;
   final List<Widget>? actions;
-  final bool showBack;
+  final bool? showBack;
   final VoidCallback? onBack;
 
   const GlassAppBar({
@@ -14,7 +14,7 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.leading,
     this.actions,
-    this.showBack = false,
+    this.showBack,
     this.onBack,
   });
 
@@ -23,14 +23,21 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xEB0C0714) : const Color(0xCCFBF9F5);
+    final borderColor = isDark ? AppColors.darkGlassBorder : AppColors.glassBorder;
+    final primaryColor = isDark ? AppColors.darkTextPrimary : AppColors.primary;
+
+    final shouldShowBack = showBack ?? Navigator.of(context).canPop();
+
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: Container(
-          decoration: const BoxDecoration(
-            color: Color(0xCCFBF9F5),
+          decoration: BoxDecoration(
+            color: bgColor,
             border: Border(
-              bottom: BorderSide(color: AppColors.glassBorder, width: 1),
+              bottom: BorderSide(color: borderColor, width: 1),
             ),
           ),
           child: SafeArea(
@@ -41,10 +48,10 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    if (showBack)
+                    if (shouldShowBack)
                       IconButton(
                         icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                        color: AppColors.primary,
+                        color: primaryColor,
                         onPressed: onBack ?? () => Navigator.of(context).maybePop(),
                       )
                     else if (leading != null)
@@ -54,7 +61,7 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
                         title,
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                              color: primaryColor,
                             ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

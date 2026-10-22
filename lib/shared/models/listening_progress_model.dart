@@ -11,6 +11,7 @@ class ListeningProgressModel {
   final String? storyId;
   final String? coverPath;
   final int? durationSeconds;
+  final String? audioPath;
 
   const ListeningProgressModel({
     required this.userId,
@@ -23,6 +24,7 @@ class ListeningProgressModel {
     this.storyId,
     this.coverPath,
     this.durationSeconds,
+    this.audioPath,
   });
 
   factory ListeningProgressModel.fromJson(Map<String, dynamic> json) {
@@ -31,12 +33,14 @@ class ListeningProgressModel {
     String? stId;
     String? cvPath;
     int? durSec;
+    String? audPath;
 
     if (json['episodes'] != null && json['episodes'] is Map) {
       final ep = json['episodes'] as Map<String, dynamic>;
       epTitle = ep['title'] as String?;
       durSec = (ep['duration_seconds'] as num?)?.toInt();
       stId = ep['story_id'] as String?;
+      audPath = ep['audio_path'] as String?;
       if (ep['stories'] != null && ep['stories'] is Map) {
         final st = ep['stories'] as Map<String, dynamic>;
         stTitle = st['title'] as String?;
@@ -55,6 +59,7 @@ class ListeningProgressModel {
       storyId: stId,
       coverPath: cvPath,
       durationSeconds: durSec,
+      audioPath: audPath,
     );
   }
 

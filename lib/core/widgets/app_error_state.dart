@@ -15,6 +15,10 @@ class AppErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? AppColors.darkTextPrimary : AppColors.primary;
+    final secondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
@@ -24,9 +28,9 @@ class AppErrorState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: AppColors.errorContainer.withOpacity(0.5),
+                color: isDark ? const Color(0x33E04A4A) : AppColors.errorContainer.withOpacity(0.5),
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.error.withOpacity(0.2)),
+                border: Border.all(color: AppColors.error.withOpacity(0.3)),
               ),
               child: Icon(
                 icon,
@@ -40,7 +44,7 @@ class AppErrorState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+                    color: primaryColor,
                   ),
             ),
             const SizedBox(height: 8),
@@ -48,11 +52,11 @@ class AppErrorState extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: secondaryColor,
                   ),
             ),
             if (onRetry != null) ...[
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded, size: 20),

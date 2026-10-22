@@ -77,73 +77,103 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final recentAsync = ref.watch(recentStoriesProvider);
     final historyAsync = ref.watch(listeningHistoryProvider);
     final authState = ref.watch(authProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final onSurfaceColor = isDark ? AppColors.darkTextPrimary : AppColors.primary;
+    final secondaryTextColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
 
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: _refresh,
         color: AppColors.accent,
         child: CustomScrollView(
-              slivers: [
-                // Top App Bar with Greeting & Search Icon
-                SliverAppBar(
-                  floating: true,
-                  pinned: false,
-                  backgroundColor: AppColors.background.withOpacity(0.85),
-                  elevation: 0,
-                  scrolledUnderElevation: 0,
-                  title: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.asset(
-                          'assets/icons/app_icon.png',
-                          width: 38,
-                          height: 38,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            padding: const EdgeInsets.all(7),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryContainer.withOpacity(0.5),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(Icons.headphones_rounded, color: AppColors.primary, size: 20),
-                          ),
+          slivers: [
+            // Top App Bar with Greeting & Search Icon
+            SliverAppBar(
+              floating: true,
+              pinned: false,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.85),
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              title: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.asset(
+                      'assets/icons/app_icon.png',
+                      width: 38,
+                      height: 38,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryContainer.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(12),
                         ),
+                        child: const Icon(Icons.headphones_rounded, color: AppColors.primary, size: 20),
                       ),
-                      const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppConstants.appTitle,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: onSurfaceColor,
+                            ),
+                      ),
+                      Row(
                         children: [
-                          Text(
-                            AppConstants.appTitle,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                ),
-                          ),
                           Text(
                             authState.isAuthenticated
                                 ? 'សួស្តី, ${authState.profile?.displayName ?? "អ្នកស្តាប់"}'
                                 : 'សូមស្វាគមន៍មកកាន់ពិភពរឿងខ្មោច',
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: AppColors.textSecondary,
+                                  color: secondaryTextColor,
                                 ),
                           ),
+                          if (authState.profile?.isVipActive == true) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFD4AF37), Color(0xFFA17822)],
+                                ),
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.workspace_premium_rounded, size: 10, color: Colors.white),
+                                  SizedBox(width: 2),
+                                  Text(
+                                    'VIP',
+                                    style: TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],
                   ),
-                  actions: [
-                    IconButton(
-                      icon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 26),
-                      onPressed: () => context.push('/explore'),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.bookmark_border_rounded, color: AppColors.primary, size: 24),
-                      onPressed: () => context.push('/favorites'),
-                    ),
-                  ],
+                ],
+              ),
+              actions: [
+                IconButton(
+                  icon: Icon(Icons.search_rounded, color: onSurfaceColor, size: 26),
+                  onPressed: () => context.push('/explore'),
                 ),
+                IconButton(
+                  icon: Icon(Icons.bookmark_border_rounded, color: onSurfaceColor, size: 24),
+                  onPressed: () => context.push('/favorites'),
+                ),
+              ],
+            ),
 
                 // Featured Story Banner
                 SliverToBoxAdapter(
@@ -225,7 +255,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           'រឿងពេញនិយម (Trending)',
                           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
+                                color: onSurfaceColor,
                               ),
                         ),
                         TextButton(
@@ -293,7 +323,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           'រឿងទើបចេញថ្មី (Recently Added)',
                           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
+                                color: onSurfaceColor,
                               ),
                         ),
                         TextButton(
@@ -347,7 +377,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
 
                 const SliverToBoxAdapter(
-                  child: SizedBox(height: 24),
+                  child: SizedBox(height: 110),
                 ),
               ],
             ),

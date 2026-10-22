@@ -18,6 +18,7 @@ class StoryCardVertical extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final coverUrl = story.getCoverUrl(EnvConfig.supabaseUrl);
     final displayUrl = coverUrl.isNotEmpty ? coverUrl : AppConstants.defaultCoverUrl;
 
@@ -35,8 +36,8 @@ class StoryCardVertical extends StatelessWidget {
               width: 72,
               height: 72,
               fit: BoxFit.cover,
-              placeholder: (_, __) => Container(color: AppColors.secondaryLight),
-              errorWidget: (_, __, ___) => Container(color: AppColors.secondaryLight),
+              placeholder: (_, __) => Container(color: isDark ? const Color(0xFF281C38) : AppColors.secondaryLight),
+              errorWidget: (_, __, ___) => Container(color: isDark ? const Color(0xFF281C38) : AppColors.secondaryLight),
             ),
           ),
           const SizedBox(width: 14),
@@ -49,7 +50,7 @@ class StoryCardVertical extends StatelessWidget {
                   Text(
                     story.categoryName!,
                     style: const TextStyle(
-                      color: AppColors.accentDark,
+                      color: AppColors.accent,
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                     ),
@@ -62,7 +63,7 @@ class StoryCardVertical extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                        color: Theme.of(context).colorScheme.onSurface,
                         height: 1.3,
                       ),
                 ),
@@ -70,14 +71,16 @@ class StoryCardVertical extends StatelessWidget {
                 Row(
                   children: [
                     if (story.narratorName != null) ...[
-                      const Icon(Icons.mic_none_rounded, size: 13, color: AppColors.textTertiary),
+                      Icon(Icons.mic_none_rounded, size: 13, color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary),
                       const SizedBox(width: 3),
                       Flexible(
                         child: Text(
                           story.narratorName!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                              ),
                         ),
                       ),
                     ],
@@ -86,7 +89,7 @@ class StoryCardVertical extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppColors.textTertiary),
+          Icon(Icons.arrow_forward_ios_rounded, size: 16, color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary),
         ],
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../app/theme/app_colors.dart';
 import '../../../core/widgets/app_empty_state.dart';
 import '../../../core/widgets/app_error_state.dart';
 import '../../../core/widgets/app_loading_shimmer.dart';
@@ -18,7 +19,6 @@ class FavoritesScreen extends ConsumerWidget {
     return Scaffold(
       appBar: const GlassAppBar(
         title: 'រឿងដែលបានរក្សាទុក (Favorites)',
-        showBack: true,
       ),
       body: storiesAsync.when(
         loading: () => ListView.builder(
@@ -32,24 +32,61 @@ class FavoritesScreen extends ConsumerWidget {
         ),
         data: (stories) {
           if (stories.isEmpty) {
-            return const AppEmptyState(
+            return AppEmptyState(
               icon: Icons.favorite_border_rounded,
               title: 'មិនទាន់មានរឿងពេញចិត្តទេ',
               message: 'ចុចលើរូបបេះដូងពេលកំពុងស្តាប់ ឬមើលរឿង ដើម្បីរក្សាទុកនៅទីនេះ។',
+              buttonText: 'រុករករឿងឥឡូវនេះ',
+              onButtonPressed: () => context.go('/explore'),
             );
           }
 
           return RefreshIndicator(
             onRefresh: () async => ref.refresh(favoriteStoriesProvider),
+            color: AppColors.accent,
             child: ListView.separated(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
               itemCount: stories.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final story = stories[index];
-                return StoryCardVertical(
-                  story: story,
-                  onTap: () => context.push('/story/${story.id}'),
+                return Dismissible(
+                  key: Key(story.id),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text('លុបចេញ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        SizedBox(width: 8),
+                        Icon(Icons.delete_outline_rounded, color: Colors.white),
+                      ],
+                    ),
+                  ),
+                  onDismissed: (_) {
+                    ref.read(favoritesControllerProvider.notifier).toggleFavorite(story.id);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('បានលុប "${story.title}" ចេញពីរឿងពេញចិត្ត'),
+                        action: SnackBarAction(
+                          label: 'ត្រឡប់វិញ',
+                          onPressed: () {
+                            ref.read(favoritesControllerProvider.notifier).toggleFavorite(story.id);
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                  child: StoryCardVertical(
+                    story: story,
+                    onTap: () => context.push('/story/${story.id}'),
+                  ),
                 );
               },
             ),

@@ -22,6 +22,7 @@ class EpisodeListTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final playerState = ref.watch(playerControllerProvider);
     final isCurrent = playerState.currentEpisode?.id == episode.id;
     final isPlaying = isCurrent && playerState.isPlaying;
@@ -31,10 +32,26 @@ class EpisodeListTile extends ConsumerWidget {
     final isDownloading = downloadsState.isDownloading(episode.id);
     final downloadProgress = downloadsState.getProgress(episode.id);
 
+    final highlightBg = isDark
+        ? const Color(0x33C89B3C)
+        : AppColors.primaryContainer.withOpacity(0.35);
+
+    final iconBg = isCurrent
+        ? AppColors.accent
+        : (isDark ? const Color(0xFF281C38) : AppColors.secondaryLight);
+
+    final iconColor = isCurrent
+        ? Colors.white
+        : (isDark ? AppColors.accent : AppColors.primary);
+
+    final titleColor = isCurrent
+        ? AppColors.accent
+        : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary);
+
     return GlassCard(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       borderRadius: 18,
-      color: isCurrent ? AppColors.primaryContainer.withOpacity(0.35) : null,
+      color: isCurrent ? highlightBg : null,
       onTap: () {
         ref.read(playerControllerProvider.notifier).playEpisode(
               episode: episode,
@@ -49,14 +66,14 @@ class EpisodeListTile extends ConsumerWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: isCurrent ? AppColors.accent : AppColors.secondaryLight,
+              color: iconBg,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
               isPlaying
                   ? Icons.pause_rounded
                   : (isCurrent ? Icons.play_arrow_rounded : Icons.headphones_rounded),
-              color: isCurrent ? Colors.white : AppColors.primary,
+              color: iconColor,
               size: 22,
             ),
           ),
@@ -73,7 +90,7 @@ class EpisodeListTile extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: isCurrent ? AppColors.primary : AppColors.textPrimary,
+                        color: titleColor,
                       ),
                 ),
                 const SizedBox(height: 3),
@@ -83,15 +100,17 @@ class EpisodeListTile extends ConsumerWidget {
                       'វគ្គ ${episode.episodeNumber}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: AppColors.accentDark,
+                            color: AppColors.accent,
                           ),
                     ),
                     const SizedBox(width: 6),
-                    const Text('•', style: TextStyle(color: AppColors.textTertiary)),
+                    Text('•', style: TextStyle(color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary)),
                     const SizedBox(width: 6),
                     Text(
                       Formatters.formatDuration(episode.durationSeconds),
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                          ),
                     ),
                   ],
                 ),
@@ -121,7 +140,10 @@ class EpisodeListTile extends ConsumerWidget {
               )
             else
               IconButton(
-                icon: const Icon(Icons.download_rounded, color: AppColors.secondary),
+                icon: Icon(
+                  Icons.download_rounded,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.secondary,
+                ),
                 onPressed: () {
                   ref.read(downloadsControllerProvider.notifier).downloadEpisode(
                         episode: episode,

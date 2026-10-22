@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../app/app.dart';
 import '../../../app/config/env_config.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
@@ -11,7 +12,6 @@ import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/glass_container.dart';
 import '../../../shared/providers/auth_provider.dart';
 import '../../../shared/providers/supabase_provider.dart';
-import '../../audio_player/presentation/mini_player.dart';
 import '../../audio_player/presentation/player_controller.dart';
 import '../../downloads/presentation/download_controller.dart';
 import '../../favorites/presentation/favorites_controller.dart';
@@ -43,14 +43,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final historyCount = historyAsync.valueOrNull?.length ?? 0;
 
     final currentSpeed = ref.watch(playerControllerProvider).speed;
+    final themeMode = ref.watch(themeModeProvider);
 
     return Scaffold(
       appBar: const GlassAppBar(title: 'គណនី និងការកំណត់'),
-      body: Stack(
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
         children: [
-          ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
-            children: [
               // 1. User Header Profile Card
               GlassCard(
                 padding: const EdgeInsets.all(20),
@@ -460,6 +459,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () => _showSleepTimerDialog(context),
                     ),
+                    const Divider(height: 1, indent: 56, color: AppColors.outlineVariant),
+                    ListTile(
+                      leading: const Icon(Icons.palette_outlined, color: AppColors.primary),
+                      title: const Text('ប្រធានបទ (Theme Mode)'),
+                      subtitle: Text(
+                        switch (themeMode) {
+                          ThemeMode.dark => 'ងងឹត (Obsidian Dark Gothic)',
+                          ThemeMode.light => 'ភ្លឺ (Soft Ivory Light)',
+                          ThemeMode.system => 'តាមទូរស័ព្ទ (System Default)',
+                        },
+                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => _showThemeDialog(context),
+                    ),
                   ],
                 ),
               ),
@@ -617,18 +631,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ],
           ),
-
-          // Docked MiniPlayer
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: MiniPlayer(),
-          ),
-        ],
-      ),
-    );
-  }
+        );
+      }
 
   // --- Dialogs & Bottom Sheets ---
 
@@ -861,6 +865,73 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showThemeDialog(BuildContext context) {
+    final currentMode = ref.read(themeModeProvider);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Row(
+          children: [
+            Icon(Icons.palette_outlined, color: AppColors.accent),
+            SizedBox(width: 10),
+            Text('ជ្រើសរើសប្រធានបទ'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<ThemeMode>(
+              activeColor: AppColors.accent,
+              title: const Text('ងងឹត (Obsidian Dark)'),
+              subtitle: const Text('ស័ក្តិសមបំផុតសម្រាប់ស្តាប់ពេលរាត្រី និងរឿងខ្មោច', style: TextStyle(fontSize: 12)),
+              value: ThemeMode.dark,
+              groupValue: currentMode,
+              onChanged: (val) {
+                if (val != null) {
+                  ref.read(themeModeProvider.notifier).setThemeMode(val);
+                  Navigator.of(ctx).pop();
+                }
+              },
+            ),
+            RadioListTile<ThemeMode>(
+              activeColor: AppColors.accent,
+              title: const Text('ភ្លឺ (Soft Ivory Light)'),
+              subtitle: const Text('ផ្ទៃភ្លឺស្រទន់បែបកញ្ចក់', style: TextStyle(fontSize: 12)),
+              value: ThemeMode.light,
+              groupValue: currentMode,
+              onChanged: (val) {
+                if (val != null) {
+                  ref.read(themeModeProvider.notifier).setThemeMode(val);
+                  Navigator.of(ctx).pop();
+                }
+              },
+            ),
+            RadioListTile<ThemeMode>(
+              activeColor: AppColors.accent,
+              title: const Text('តាមទូរស័ព្ទ (System Default)'),
+              subtitle: const Text('ប្តូរតាមការកំណត់របស់ឧបករណ៍', style: TextStyle(fontSize: 12)),
+              value: ThemeMode.system,
+              groupValue: currentMode,
+              onChanged: (val) {
+                if (val != null) {
+                  ref.read(themeModeProvider.notifier).setThemeMode(val);
+                  Navigator.of(ctx).pop();
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('បិទ'),
+          ),
+        ],
       ),
     );
   }

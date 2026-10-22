@@ -17,16 +17,20 @@ class AppLoadingShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? const Color(0xFF1E1430) : const Color(0xFFEADBFF).withOpacity(0.35);
+    final highlightColor = isDark ? const Color(0xFF2E2048) : Colors.white.withOpacity(0.8);
+
     return Container(
       margin: margin,
       child: Shimmer.fromColors(
-        baseColor: const Color(0xFFEADBFF).withOpacity(0.35),
-        highlightColor: Colors.white.withOpacity(0.8),
+        baseColor: baseColor,
+        highlightColor: highlightColor,
         child: Container(
           width: width,
           height: height,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? const Color(0xFF1E1430) : Colors.white,
             borderRadius: BorderRadius.circular(borderRadius),
           ),
         ),
@@ -64,7 +68,7 @@ class AppLoadingShimmer extends StatelessWidget {
               children: [
                 AppLoadingShimmer(width: double.infinity, height: 16, borderRadius: 6),
                 SizedBox(height: 8),
-                AppLoadingShimmer(width: 120, height: 12, borderRadius: 4),
+                AppLoadingShimmer(width: 140, height: 12, borderRadius: 4),
               ],
             ),
           ),

@@ -20,6 +20,7 @@ class MiniPlayer extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final controller = ref.read(playerControllerProvider.notifier);
     final coverUrl = playerState.currentStory?.getCoverUrl(EnvConfig.supabaseUrl) ??
         episode.storyCoverPath ??
@@ -29,8 +30,12 @@ class MiniPlayer extends ConsumerWidget {
         ? (playerState.position.inMilliseconds / playerState.duration.inMilliseconds).clamp(0.0, 1.0)
         : 0.0;
 
+    final primaryColor = isDark ? AppColors.darkTextPrimary : AppColors.primary;
+    final secondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final playBtnColor = isDark ? AppColors.accent : AppColors.primary;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       child: GlassContainer(
         padding: EdgeInsets.zero,
         borderRadius: 22,
@@ -48,7 +53,7 @@ class MiniPlayer extends ConsumerWidget {
             // Linear progress indicator at the very top of mini-player
             LinearProgressIndicator(
               value: progressRatio,
-              backgroundColor: AppColors.accentLight.withOpacity(0.4),
+              backgroundColor: isDark ? const Color(0x33281C38) : AppColors.accentLight.withOpacity(0.4),
               valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accent),
               minHeight: 2.5,
             ),
@@ -65,12 +70,12 @@ class MiniPlayer extends ConsumerWidget {
                       height: 48,
                       fit: BoxFit.cover,
                       placeholder: (_, __) => Container(
-                        color: AppColors.secondaryLight,
-                        child: const Icon(Icons.music_note, color: AppColors.secondary),
+                        color: isDark ? const Color(0xFF281C38) : AppColors.secondaryLight,
+                        child: Icon(Icons.music_note, color: isDark ? AppColors.accent : AppColors.secondary),
                       ),
                       errorWidget: (_, __, ___) => Container(
-                        color: AppColors.secondaryLight,
-                        child: const Icon(Icons.music_note, color: AppColors.secondary),
+                        color: isDark ? const Color(0xFF281C38) : AppColors.secondaryLight,
+                        child: Icon(Icons.music_note, color: isDark ? AppColors.accent : AppColors.secondary),
                       ),
                     ),
                   ),
@@ -87,7 +92,7 @@ class MiniPlayer extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
+                                color: primaryColor,
                               ),
                         ),
                         const SizedBox(height: 2),
@@ -96,19 +101,21 @@ class MiniPlayer extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.textSecondary,
+                                color: secondaryColor,
                               ),
                         ),
                       ],
                     ),
                   ),
-                  // Controls
+                  // Forward 10s button
                   IconButton(
                     icon: const Icon(Icons.forward_10_rounded),
-                    color: AppColors.primary,
-                    iconSize: 26,
+                    color: primaryColor,
+                    iconSize: 24,
+                    tooltip: 'ទៅមុខ ១០ វិនាទី',
                     onPressed: () => controller.seekForward(seconds: 10),
                   ),
+                  // Play/Pause button
                   IconButton(
                     icon: playerState.isBuffering
                         ? const SizedBox(
@@ -120,10 +127,17 @@ class MiniPlayer extends ConsumerWidget {
                             playerState.isPlaying
                                 ? Icons.pause_circle_filled_rounded
                                 : Icons.play_circle_fill_rounded,
-                            color: AppColors.primary,
+                            color: playBtnColor,
                             size: 38,
                           ),
                     onPressed: () => controller.togglePlayPause(),
+                  ),
+                  // Close/Dismiss button
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                    color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary,
+                    tooltip: 'បិទកម្មវិធីចាក់សំឡេង',
+                    onPressed: () => controller.stop(),
                   ),
                 ],
               ),

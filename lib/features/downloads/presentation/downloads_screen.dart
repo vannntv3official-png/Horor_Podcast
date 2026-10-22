@@ -62,7 +62,7 @@ class DownloadsScreen extends ConsumerWidget {
                                 '${Formatters.formatFileSize(downloadsState.totalStorageBytes)} (${items.length} ភាគ)',
                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                       fontWeight: FontWeight.bold,
-                                      color: AppColors.primary,
+                                      color: Theme.of(context).colorScheme.onSurface,
                                     ),
                               ),
                             ],
@@ -76,7 +76,7 @@ class DownloadsScreen extends ConsumerWidget {
                 // Episode List
                 Expanded(
                   child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
                     itemCount: items.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {

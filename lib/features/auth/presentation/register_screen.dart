@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/widgets/glass_app_bar.dart';
 import '../../../shared/providers/auth_provider.dart';
 import '../../../shared/providers/supabase_provider.dart';
 
@@ -57,8 +58,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('ចុះឈ្មោះគណនីថ្មី'),
+      appBar: const GlassAppBar(
+        title: 'ចុះឈ្មោះគណនីថ្មី',
+        showBack: true,
       ),
       body: SafeArea(
         child: Center(

@@ -21,6 +21,7 @@ class KhmerAudioHandler extends BaseAudioHandler with SeekHandler {
   final AudioPlayer _player = AudioPlayer();
   Timer? _sleepTimer;
   DateTime? _sleepTimerEndTime;
+  VoidCallback? onPlaybackCompleted;
 
   KhmerAudioHandler() {
     _initPlayerEvents();
@@ -71,6 +72,8 @@ class KhmerAudioHandler extends BaseAudioHandler with SeekHandler {
           // If sleep timer was set for end of episode, pause
           pause();
           cancelSleepTimer();
+        } else {
+          onPlaybackCompleted?.call();
         }
       }
     });
@@ -128,6 +131,10 @@ class KhmerAudioHandler extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> setSpeed(double speed) => _player.setSpeed(speed);
+
+  Future<void> setLoopMode(LoopMode mode) => _player.setLoopMode(mode);
+
+  Future<void> setShuffleEnabled(bool enabled) => _player.setShuffleModeEnabled(enabled);
 
   // Sleep Timer
   void setSleepTimerMinutes(int minutes, {VoidCallback? onFinished}) {

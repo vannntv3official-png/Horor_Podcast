@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:just_audio/just_audio.dart';
 import '../../../app/config/env_config.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/errors/error_handler.dart';
@@ -10,6 +11,7 @@ import '../../../shared/models/episode_model.dart';
 import '../../../shared/models/story_model.dart';
 import '../../../shared/providers/auth_provider.dart';
 import '../../../shared/providers/supabase_provider.dart';
+import '../../downloads/presentation/download_controller.dart';
 import '../data/audio_handler.dart';
 
 final audioHandlerProvider = Provider<KhmerAudioHandler>((ref) {
@@ -26,6 +28,8 @@ class PlayerStateModel {
   final Duration position;
   final Duration duration;
   final double speed;
+  final LoopMode loopMode;
+  final bool isShuffle;
   final int? sleepTimerMinutesRemaining;
   final bool sleepTimerAtEndOfEpisode;
   final AppException? error;
@@ -40,6 +44,8 @@ class PlayerStateModel {
     this.position = Duration.zero,
     this.duration = Duration.zero,
     this.speed = 1.0,
+    this.loopMode = LoopMode.off,
+    this.isShuffle = false,
     this.sleepTimerMinutesRemaining,
     this.sleepTimerAtEndOfEpisode = false,
     this.error,
@@ -57,6 +63,8 @@ class PlayerStateModel {
     Duration? position,
     Duration? duration,
     double? speed,
+    LoopMode? loopMode,
+    bool? isShuffle,
     int? sleepTimerMinutesRemaining,
     bool clearSleepTimer = false,
     bool? sleepTimerAtEndOfEpisode,
@@ -73,6 +81,8 @@ class PlayerStateModel {
       position: position ?? this.position,
       duration: duration ?? this.duration,
       speed: speed ?? this.speed,
+      loopMode: loopMode ?? this.loopMode,
+      isShuffle: isShuffle ?? this.isShuffle,
       sleepTimerMinutesRemaining: clearSleepTimer
           ? null
           : (sleepTimerMinutesRemaining ?? this.sleepTimerMinutesRemaining),
@@ -92,6 +102,7 @@ class PlayerController extends StateNotifier<PlayerStateModel> {
 
   PlayerController(this._handler, this._ref) : super(const PlayerStateModel()) {
     _bindStreams();
+    _handler.onPlaybackCompleted = _handlePlaybackCompleted;
   }
 
   void _bindStreams() {
@@ -128,6 +139,28 @@ class PlayerController extends StateNotifier<PlayerStateModel> {
     });
   }
 
+  void _handlePlaybackCompleted() {
+    _scheduleProgressSync(immediate: true, completed: true);
+
+    if (state.loopMode == LoopMode.one) {
+      seek(Duration.zero);
+      _handler.play();
+      return;
+    }
+
+    if (state.queue.isNotEmpty) {
+      if (state.queueIndex < state.queue.length - 1) {
+        playNext();
+      } else if (state.loopMode == LoopMode.all) {
+        playEpisode(
+          episode: state.queue.first,
+          story: state.currentStory,
+          playlist: state.queue,
+        );
+      }
+    }
+  }
+
   Future<void> playEpisode({
     required EpisodeModel episode,
     StoryModel? story,
@@ -145,7 +178,20 @@ class PlayerController extends StateNotifier<PlayerStateModel> {
     );
 
     try {
-      final audioUrl = localAudioPath ?? episode.getAudioUrl(EnvConfig.supabaseUrl);
+      // Smart offline detection: prefer downloaded local file if available
+      String? resolvedAudioPath = localAudioPath;
+      if (resolvedAudioPath == null) {
+        try {
+          final downloads = _ref.read(downloadsControllerProvider);
+          final downloaded = downloads.downloadedItems[episode.id];
+          if (downloaded != null) {
+            resolvedAudioPath = downloaded.localFilePath;
+          }
+        } catch (_) {}
+      }
+
+      final isLocal = resolvedAudioPath != null;
+      final audioUrl = resolvedAudioPath ?? episode.getAudioUrl(EnvConfig.supabaseUrl);
       final coverUrl = story?.getCoverUrl(EnvConfig.supabaseUrl);
 
       await _handler.playCustomMediaItem(
@@ -156,7 +202,7 @@ class PlayerController extends StateNotifier<PlayerStateModel> {
         coverUrl: coverUrl,
         initialPosition: startPosition,
         duration: Duration(seconds: episode.durationSeconds),
-        isLocalFile: localAudioPath != null,
+        isLocalFile: isLocal,
       );
 
       _recordListeningEvent(episode.id, 'play');
@@ -196,6 +242,28 @@ class PlayerController extends StateNotifier<PlayerStateModel> {
     await _handler.setSpeed(speed);
     state = state.copyWith(speed: speed);
     _ref.read(localStorageProvider).savePlaybackSpeed(speed);
+  }
+
+  Future<void> toggleRepeatMode() async {
+    final nextMode = switch (state.loopMode) {
+      LoopMode.off => LoopMode.all,
+      LoopMode.all => LoopMode.one,
+      LoopMode.one => LoopMode.off,
+    };
+    await _handler.setLoopMode(nextMode);
+    state = state.copyWith(loopMode: nextMode);
+  }
+
+  Future<void> toggleShuffle() async {
+    final newShuffle = !state.isShuffle;
+    await _handler.setShuffleEnabled(newShuffle);
+    state = state.copyWith(isShuffle: newShuffle);
+  }
+
+  Future<void> stop() async {
+    _sleepCountdownTimer?.cancel();
+    await _handler.stop();
+    state = const PlayerStateModel();
   }
 
   // Next / Previous Episode
@@ -251,8 +319,8 @@ class PlayerController extends StateNotifier<PlayerStateModel> {
   }
 
   void setSleepTimerEndOfEpisode() {
-    _sleepCountdownTimer?.cancel();
     _handler.setSleepTimerEndOfEpisode();
+    _sleepCountdownTimer?.cancel();
     state = state.copyWith(
       clearSleepTimer: true,
       sleepTimerAtEndOfEpisode: true,
@@ -260,39 +328,39 @@ class PlayerController extends StateNotifier<PlayerStateModel> {
   }
 
   void cancelSleepTimer() {
-    _sleepCountdownTimer?.cancel();
     _handler.cancelSleepTimer();
+    _sleepCountdownTimer?.cancel();
     state = state.copyWith(clearSleepTimer: true);
   }
 
-  void _scheduleProgressSync({bool immediate = false}) {
+  // Sync listening progress to Supabase
+  void _scheduleProgressSync({bool immediate = false, bool completed = false}) {
     if (immediate) {
-      _syncListeningProgress();
+      _syncProgress(completed: completed);
     } else {
-      _progressDebouncer.run(_syncListeningProgress);
+      _progressDebouncer.run(() => _syncProgress(completed: completed));
     }
   }
 
-  Future<void> _syncListeningProgress() async {
+  Future<void> _syncProgress({bool completed = false}) async {
     final episode = state.currentEpisode;
     final user = _ref.read(authProvider).user;
     if (episode == null || user == null) return;
 
-    final posSec = state.position.inSeconds;
-    final totalSec = state.duration.inSeconds;
-    final completed = totalSec > 0 && posSec >= (totalSec - 10);
+    final posSeconds = state.position.inSeconds;
+    if (posSeconds < 3 && !completed) return;
 
     try {
       final supabase = _ref.read(supabaseClientProvider);
       await supabase.from('listening_progress').upsert({
         'user_id': user.id,
         'episode_id': episode.id,
-        'position_seconds': posSec,
-        'completed': completed,
+        'position_seconds': posSeconds,
+        'completed': completed || (state.duration.inSeconds > 0 && posSeconds >= state.duration.inSeconds - 5),
         'last_played_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'user_id,episode_id');
+      }, onConflict: 'user_id, episode_id');
     } catch (e) {
+      // Non-blocking background sync failure
       AppLogger.warning('Failed to sync listening progress: $e');
     }
   }

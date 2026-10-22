@@ -86,7 +86,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     AppConstants.appTitle,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                   ),
                   const SizedBox(height: 6),

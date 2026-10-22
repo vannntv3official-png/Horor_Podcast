@@ -20,6 +20,8 @@ class StoryCardHorizontal extends StatelessWidget {
     final coverUrl = story.getCoverUrl(EnvConfig.supabaseUrl);
     final displayUrl = coverUrl.isNotEmpty ? coverUrl : AppConstants.defaultCoverUrl;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: 154,
       margin: const EdgeInsets.only(right: 14),
@@ -34,11 +36,11 @@ class StoryCardHorizontal extends StatelessWidget {
               height: 190,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                    color: Color(0x141D102F),
+                    color: isDark ? const Color(0x66000000) : const Color(0x141D102F),
                     blurRadius: 14,
-                    offset: Offset(0, 6),
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
@@ -49,12 +51,12 @@ class StoryCardHorizontal extends StatelessWidget {
                   fit: BoxFit.cover,
                   width: double.infinity,
                   placeholder: (_, __) => Container(
-                    color: AppColors.secondaryLight,
-                    child: const Icon(Icons.music_note, color: AppColors.secondary),
+                    color: isDark ? const Color(0xFF281C38) : AppColors.secondaryLight,
+                    child: Icon(Icons.music_note, color: isDark ? AppColors.accent : AppColors.secondary),
                   ),
                   errorWidget: (_, __, ___) => Container(
-                    color: AppColors.secondaryLight,
-                    child: const Icon(Icons.music_note, color: AppColors.secondary),
+                    color: isDark ? const Color(0xFF281C38) : AppColors.secondaryLight,
+                    child: Icon(Icons.music_note, color: isDark ? AppColors.accent : AppColors.secondary),
                   ),
                 ),
               ),
@@ -67,7 +69,7 @@ class StoryCardHorizontal extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+                    color: Theme.of(context).colorScheme.onSurface,
                     height: 1.3,
                   ),
             ),
@@ -80,7 +82,7 @@ class StoryCardHorizontal extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                   ),
             ),
           ],

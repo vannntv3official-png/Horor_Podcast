@@ -47,9 +47,17 @@ class HistoryScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: const GlassAppBar(
+      appBar: GlassAppBar(
         title: 'ប្រវត្តិនៃការស្តាប់ (History)',
         showBack: true,
+        actions: [
+          if (historyAsync.valueOrNull != null && historyAsync.valueOrNull!.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_sweep_outlined, color: AppColors.error),
+              tooltip: 'សម្អាតប្រវត្តិទាំងអស់',
+              onPressed: () => _confirmClearHistory(context, ref),
+            ),
+        ],
       ),
       body: historyAsync.when(
         loading: () => ListView.builder(
@@ -92,7 +100,7 @@ class HistoryScreen extends ConsumerWidget {
                         storyId: item.storyId ?? '',
                         title: item.episodeTitle!,
                         episodeNumber: 1,
-                        audioPath: 'podcast-audio/${item.episodeId}.mp3',
+                        audioPath: item.audioPath ?? 'podcast-audio/${item.episodeId}.mp3',
                         durationSeconds: item.durationSeconds ?? 0,
                       );
                       final st = StoryModel(
@@ -160,6 +168,40 @@ class HistoryScreen extends ConsumerWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _confirmClearHistory(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('សម្អាតប្រវត្តិស្តាប់?'),
+        content: const Text('តើអ្នកពិតជាចង់លុបប្រវត្តិនៃការស្តាប់ទាំងអស់មែនទេ? សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('បោះបង់'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              final user = ref.read(authProvider).user;
+              if (user != null) {
+                await ref.read(historyRepositoryProvider).clearHistory(user.id);
+                ref.invalidate(listeningHistoryProvider);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('បានសម្អាតប្រវត្តិស្តាប់ទាំងអស់រួចរាល់')),
+                  );
+                }
+              }
+            },
+            child: const Text('សម្អាតទាំងអស់'),
+          ),
+        ],
       ),
     );
   }

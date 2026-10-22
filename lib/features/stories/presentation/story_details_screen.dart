@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/config/env_config.dart';
 import '../../../app/theme/app_colors.dart';
@@ -90,6 +91,30 @@ class StoryDetailsScreen extends ConsumerWidget {
                             color: Colors.black.withOpacity(0.4),
                             shape: BoxShape.circle,
                           ),
+                          child: const Icon(
+                            Icons.share_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                        onPressed: () {
+                          Clipboard.setData(
+                            ClipboardData(
+                              text: 'ស្តាប់រឿង "${story.title}" លើកម្មវិធី Khmer Horror Podcast: https://khmerhorrorpodcast.com/story/${story.id}',
+                            ),
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('បានចម្លងតំណភ្ជាប់រឿងទៅកាន់ Clipboard រួចរាល់!')),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.4),
+                            shape: BoxShape.circle,
+                          ),
                           child: Icon(
                             isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                             color: isFav ? Colors.redAccent : Colors.white,
@@ -119,7 +144,7 @@ class StoryDetailsScreen extends ConsumerWidget {
                                 colors: [
                                   Colors.black.withOpacity(0.3),
                                   Colors.transparent,
-                                  AppColors.background,
+                                  Theme.of(context).scaffoldBackgroundColor,
                                 ],
                               ),
                             ),
@@ -158,7 +183,7 @@ class StoryDetailsScreen extends ConsumerWidget {
                             story.title,
                             style: Theme.of(context).textTheme.displaySmall?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                           ),
                           const SizedBox(height: 10),
@@ -227,7 +252,7 @@ class StoryDetailsScreen extends ConsumerWidget {
                             'បញ្ជីវគ្គទាំងអស់ (Episodes)',
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                           ),
                           const SizedBox(height: 12),

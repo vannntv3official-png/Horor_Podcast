@@ -11,15 +11,19 @@ class PlaybackSpeedDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final playerState = ref.watch(playerControllerProvider);
     final controller = ref.read(playerControllerProvider.notifier);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SimpleDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: isDark ? AppColors.darkGlassBorder : AppColors.glassBorder),
+      ),
+      backgroundColor: isDark ? const Color(0xFF1B1229) : AppColors.surface,
       title: Text(
         'ល្បឿនចាក់សំឡេង (Playback Speed)',
         style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
-              color: AppColors.primary,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
             ),
       ),
       children: AppConstants.playbackSpeeds.map((speed) {
@@ -39,11 +43,13 @@ class PlaybackSpeedDialog extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isSelected ? AppColors.accentDark : AppColors.textPrimary,
+                    color: isSelected
+                        ? AppColors.accent
+                        : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
                   ),
                 ),
                 if (isSelected)
-                  const Icon(Icons.check_rounded, color: AppColors.accentDark),
+                  const Icon(Icons.check_rounded, color: AppColors.accent),
               ],
             ),
           ),

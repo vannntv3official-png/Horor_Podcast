@@ -95,7 +95,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
+                                color: Theme.of(context).colorScheme.onSurface,
                                 height: 1.35,
                               ),
                         ),
@@ -104,7 +104,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           slide['desc'] as String,
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: AppColors.textSecondary,
+                                color: Theme.of(context).textTheme.bodyMedium?.color,
                                 height: 1.5,
                               ),
                         ),

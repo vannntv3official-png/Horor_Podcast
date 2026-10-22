@@ -19,6 +19,12 @@ class AppEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? AppColors.darkTextPrimary : AppColors.primary;
+    final secondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final iconBgColor = isDark ? const Color(0xFF1B1229) : AppColors.secondaryLight;
+    final iconBorderColor = isDark ? AppColors.darkGlassBorder : AppColors.glassBorder;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
@@ -28,14 +34,14 @@ class AppEmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.secondaryLight,
+                color: iconBgColor,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.glassBorder),
+                border: Border.all(color: iconBorderColor),
               ),
               child: Icon(
                 icon,
                 size: 48,
-                color: AppColors.secondary,
+                color: AppColors.accent,
               ),
             ),
             const SizedBox(height: 20),
@@ -44,7 +50,7 @@ class AppEmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+                    color: primaryColor,
                   ),
             ),
             const SizedBox(height: 8),
@@ -52,7 +58,7 @@ class AppEmptyState extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: secondaryColor,
                   ),
             ),
             if (buttonText != null && onButtonPressed != null) ...[

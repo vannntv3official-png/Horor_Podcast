@@ -79,8 +79,18 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     super.dispose();
   }
 
+  Future<void> _refresh() async {
+    ref.invalidate(categoriesProvider);
+    ref.invalidate(searchStoriesProvider((
+      query: _currentQuery,
+      categorySlug: _selectedCategorySlug,
+      sortBy: _sortBy,
+    )));
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final categoriesAsync = ref.watch(categoriesProvider);
     final searchResultsAsync = ref.watch(
       searchStoriesProvider((
@@ -93,188 +103,200 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     return Scaffold(
       appBar: const GlassAppBar(
         title: 'ស្វែងរក និងរុករក (Explore)',
-        showBack: true,
       ),
-      body: CustomScrollView(
-        slivers: [
-          // Search Input Box
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: _onSearchChanged,
-                    decoration: InputDecoration(
-                      hintText: 'ស្វែងរកតាមចំណងជើង រឿង ឬអ្នកនិទាន...',
-                      prefixIcon: const Icon(Icons.search_rounded, color: AppColors.secondary),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear_rounded, color: AppColors.textTertiary),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() => _currentQuery = '');
-                              },
-                            )
-                          : null,
-                    ),
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        color: AppColors.accent,
+        child: CustomScrollView(
+          slivers: [
+            // Search Input Box
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  decoration: InputDecoration(
+                    hintText: 'ស្វែងរកតាមចំណងជើង រឿង ឬអ្នកនិទាន...',
+                    prefixIcon: const Icon(Icons.search_rounded, color: AppColors.secondary),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded, color: AppColors.textTertiary),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _currentQuery = '');
+                            },
+                          )
+                        : null,
                   ),
                 ),
               ),
+            ),
 
-              // Categories Chips
-              SliverToBoxAdapter(
-                child: categoriesAsync.when(
-                  data: (categories) => Padding(
-                    padding: const EdgeInsets.only(top: 8, bottom: 8),
-                    child: CategoryPills(
-                      categories: categories,
-                      selectedSlug: _selectedCategorySlug,
-                      onSelect: (slug) {
-                        setState(() => _selectedCategorySlug = slug);
+            // Categories Chips
+            SliverToBoxAdapter(
+              child: categoriesAsync.when(
+                data: (categories) => Padding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 8),
+                  child: CategoryPills(
+                    categories: categories,
+                    selectedSlug: _selectedCategorySlug,
+                    onSelect: (slug) {
+                      setState(() => _selectedCategorySlug = slug);
+                    },
+                  ),
+                ),
+                loading: () => const SizedBox(height: 40),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+            ),
+
+            // Sort dropdown & Filter Row
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'តម្រៀបតាម:',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                          ),
+                    ),
+                    DropdownButton<String>(
+                      value: _sortBy,
+                      underline: const SizedBox.shrink(),
+                      dropdownColor: isDark ? const Color(0xFF1B1229) : AppColors.surface,
+                      icon: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: isDark ? AppColors.accent : AppColors.primary,
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'newest', child: Text('ចេញថ្មីបំផុត (Newest)')),
+                        DropdownMenuItem(value: 'popular', child: Text('ពេញនិយមបំផុត (Popular)')),
+                        DropdownMenuItem(value: 'title', child: Text('តាមអក្ខរក្រម (Title)')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() => _sortBy = val);
+                        }
                       },
                     ),
-                  ),
-                  loading: () => const SizedBox(height: 40),
-                  error: (_, __) => const SizedBox.shrink(),
+                  ],
                 ),
               ),
+            ),
 
-              // Sort dropdown & Recent Searches
+            // Recent Search Chips (if query is empty)
+            if (_currentQuery.isEmpty && _recentSearches.isNotEmpty) ...[
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'តម្រៀបតាម:',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      DropdownButton<String>(
-                        value: _sortBy,
-                        underline: const SizedBox.shrink(),
-                        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
-                        items: const [
-                          DropdownMenuItem(value: 'newest', child: Text('ចេញថ្មីបំផុត (Newest)')),
-                          DropdownMenuItem(value: 'popular', child: Text('ពេញនិយមបំផុត (Popular)')),
-                          DropdownMenuItem(value: 'title', child: Text('តាមអក្ខរក្រម (Title)')),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'ការស្វែងរកថ្មីៗ',
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                ),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              await ref.read(localStorageProvider).clearRecentSearches();
+                              _loadRecentSearches();
+                            },
+                            child: const Text('សម្អាត'),
+                          ),
                         ],
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(() => _sortBy = val);
-                          }
-                        },
+                      ),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: _recentSearches.map((tag) {
+                          return ActionChip(
+                            label: Text(tag, style: const TextStyle(fontSize: 12)),
+                            backgroundColor: isDark ? const Color(0xFF1B1229) : AppColors.surface,
+                            side: BorderSide(
+                              color: isDark ? AppColors.darkGlassBorder : AppColors.glassBorder,
+                            ),
+                            onPressed: () {
+                              _searchController.text = tag;
+                              setState(() => _currentQuery = tag);
+                            },
+                          );
+                        }).toList(),
                       ),
                     ],
                   ),
                 ),
               ),
+            ],
 
-              // Recent Search Chips (if query is empty)
-              if (_currentQuery.isEmpty && _recentSearches.isNotEmpty) ...[
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'ការស្វែងរកថ្មីៗ',
-                              style: Theme.of(context).textTheme.titleSmall,
-                            ),
-                            TextButton(
-                              onPressed: () async {
-                                await ref.read(localStorageProvider).clearRecentSearches();
-                                _loadRecentSearches();
-                              },
-                              child: const Text('សម្អាត'),
-                            ),
-                          ],
-                        ),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 4,
-                          children: _recentSearches.map((tag) {
-                            return ActionChip(
-                              label: Text(tag, style: const TextStyle(fontSize: 12)),
-                              backgroundColor: AppColors.surface,
-                              side: const BorderSide(color: AppColors.glassBorder),
-                              onPressed: () {
-                                _searchController.text = tag;
-                                setState(() => _currentQuery = tag);
-                              },
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-
-              // Results List
-              searchResultsAsync.when(
-                data: (stories) {
-                  if (stories.isEmpty) {
-                    return const SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: AppEmptyState(
-                        icon: Icons.search_off_rounded,
-                        title: 'រកមិនឃើញរឿងទេ',
-                        message: 'សូមសាកល្បងស្វែងរកដោយប្រើពាក្យគន្លឹះផ្សេងទៀត។',
-                      ),
-                    );
-                  }
-
-                  return SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final story = stories[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: StoryCardVertical(
-                              story: story,
-                              onTap: () => context.push('/story/${story.id}'),
-                            ),
-                          );
-                        },
-                        childCount: stories.length,
-                      ),
+            // Results List
+            searchResultsAsync.when(
+              data: (stories) {
+                if (stories.isEmpty) {
+                  return const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: AppEmptyState(
+                      icon: Icons.search_off_rounded,
+                      title: 'រកមិនឃើញរឿងទេ',
+                      message: 'សូមសាកល្បងស្វែងរកដោយប្រើពាក្យគន្លឹះ ឬប្រភេទផ្សេងទៀត។',
                     ),
                   );
-                },
-                loading: () => SliverPadding(
-                  padding: const EdgeInsets.all(16),
+                }
+
+                return SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
-                      (_, __) => AppLoadingShimmer.episodeTilePlaceholder(),
-                      childCount: 6,
+                      (context, index) {
+                        final story = stories[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: StoryCardVertical(
+                            story: story,
+                            onTap: () => context.push('/story/${story.id}'),
+                          ),
+                        );
+                      },
+                      childCount: stories.length,
                     ),
                   ),
-                ),
-                error: (err, _) => SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: AppErrorState(
-                    message: 'មិនអាចស្វែងរកបានទេ។ សូមព្យាយាមម្តងទៀត។',
-                    onRetry: () => ref.refresh(
-                      searchStoriesProvider((
-                        query: _currentQuery,
-                        categorySlug: _selectedCategorySlug,
-                        sortBy: _sortBy,
-                      )),
-                    ),
+                );
+              },
+              loading: () => SliverPadding(
+                padding: const EdgeInsets.all(16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (_, __) => AppLoadingShimmer.episodeTilePlaceholder(),
+                    childCount: 6,
                   ),
                 ),
               ),
-            ],
-          ),
-        );
-      }
-    }
+              error: (err, _) => SliverFillRemaining(
+                hasScrollBody: false,
+                child: AppErrorState(
+                  message: 'មិនអាចស្វែងរកបានទេ។ សូមព្យាយាមម្តងទៀត។',
+                  onRetry: () => ref.refresh(
+                    searchStoriesProvider((
+                      query: _currentQuery,
+                      categorySlug: _selectedCategorySlug,
+                      sortBy: _sortBy,
+                    )),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

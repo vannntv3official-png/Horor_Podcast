@@ -9,6 +9,9 @@ class AppConstants {
   static const String keyPlaybackSpeed = 'khp_playback_speed';
   static const String keyHasSeenOnboarding = 'khp_has_seen_onboarding';
   static const String keyOfflineDownloads = 'khp_offline_downloads';
+  static const String keyThemeMode = 'khp_theme_mode';
+  static const String keyAudioQuality = 'khp_audio_quality';
+  static const String keyHapticFeedback = 'khp_haptic_feedback';
 
   // Audio Playback
   static const List<double> playbackSpeeds = [0.75, 1.0, 1.25, 1.5, 2.0];

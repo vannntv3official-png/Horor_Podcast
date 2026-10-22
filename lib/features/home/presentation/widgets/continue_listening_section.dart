@@ -60,7 +60,7 @@ class ContinueListeningSection extends ConsumerWidget {
                       storyId: item.storyId ?? '',
                       title: item.episodeTitle ?? 'ភាគនិទាន',
                       episodeNumber: 1,
-                      audioPath: 'podcast-audio/${item.episodeId}.mp3',
+                      audioPath: item.audioPath ?? 'podcast-audio/${item.episodeId}.mp3',
                       durationSeconds: item.durationSeconds ?? 0,
                     );
                     final st = StoryModel(

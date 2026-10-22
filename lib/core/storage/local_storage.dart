@@ -151,4 +151,20 @@ class LocalStorage {
       _memoryFallback[AppConstants.keyOfflineDownloads] = str;
     }
   }
+
+  // Theme Mode ('dark', 'light', 'system')
+  String getThemeMode() {
+    if (_prefs != null) {
+      return _prefs.getString(AppConstants.keyThemeMode) ?? 'dark';
+    }
+    return (_memoryFallback[AppConstants.keyThemeMode] as String?) ?? 'dark';
+  }
+
+  Future<void> saveThemeMode(String mode) async {
+    if (_prefs != null) {
+      await _prefs.setString(AppConstants.keyThemeMode, mode);
+    } else {
+      _memoryFallback[AppConstants.keyThemeMode] = mode;
+    }
+  }
 }
