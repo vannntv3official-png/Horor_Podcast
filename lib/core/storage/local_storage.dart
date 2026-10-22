@@ -14,8 +14,13 @@ class LocalStorage {
       final prefs = await SharedPreferences.getInstance();
       return LocalStorage(prefs);
     } catch (e, st) {
-      AppLogger.error('Failed to initialize SharedPreferences', e, st);
-      return LocalStorage(null);
+      AppLogger.error('Failed to initialize SharedPreferences, retrying...', e, st);
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        return LocalStorage(prefs);
+      } catch (_) {
+        return LocalStorage(null);
+      }
     }
   }
 

@@ -64,6 +64,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         _ref.read(localStorageProvider).setHasSeenOnboarding(true);
         _fetchProfile(user.id);
       } else if (data.event == AuthChangeEvent.signedOut) {
+        _ref.read(localStorageProvider).setHasSeenOnboarding(true);
         state = const AuthState(isGuest: true);
       }
     });
@@ -166,6 +167,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (e) {
       AppLogger.warning('Sign out error: $e');
     } finally {
+      await _ref.read(localStorageProvider).setHasSeenOnboarding(true);
       state = const AuthState(isGuest: true);
     }
   }
@@ -197,6 +199,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // Direct RPC or delete self row triggering cascade
       await _supabase.from('profiles').delete().eq('id', user.id);
       await _supabase.auth.signOut();
+      await _ref.read(localStorageProvider).setHasSeenOnboarding(true);
       state = const AuthState(isGuest: true);
       return true;
     } catch (e, st) {

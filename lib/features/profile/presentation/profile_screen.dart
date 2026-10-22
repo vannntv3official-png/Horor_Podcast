@@ -8,6 +8,7 @@ import '../../../core/widgets/glass_app_bar.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/glass_container.dart';
 import '../../../shared/providers/auth_provider.dart';
+import '../../../shared/providers/supabase_provider.dart';
 import '../../audio_player/presentation/mini_player.dart';
 import '../../downloads/presentation/download_controller.dart';
 import '../../favorites/presentation/favorites_controller.dart';
@@ -227,7 +228,11 @@ class ProfileScreen extends ConsumerWidget {
                         leading: const Icon(Icons.logout_rounded, color: AppColors.error),
                         title: const Text('ចាកចេញពីគណនី (Sign Out)', style: TextStyle(color: AppColors.error)),
                         onTap: () async {
+                          await ref.read(localStorageProvider).setHasSeenOnboarding(true);
                           await ref.read(authProvider.notifier).signOut();
+                          if (context.mounted) {
+                            context.go('/login');
+                          }
                         },
                       ),
                       const Divider(height: 1, indent: 56, color: AppColors.outlineVariant),
@@ -304,7 +309,11 @@ class ProfileScreen extends ConsumerWidget {
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
               Navigator.of(ctx).pop();
+              await ref.read(localStorageProvider).setHasSeenOnboarding(true);
               await ref.read(authProvider.notifier).deleteAccount();
+              if (context.mounted) {
+                context.go('/login');
+              }
             },
             child: const Text('បញ្ជាក់ការលុប'),
           ),

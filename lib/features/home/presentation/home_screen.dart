@@ -53,6 +53,14 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   String? _selectedCategorySlug;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(localStorageProvider).setHasSeenOnboarding(true);
+    });
+  }
+
   Future<void> _refresh() async {
     ref.invalidate(categoriesProvider);
     ref.invalidate(featuredStoryProvider);
