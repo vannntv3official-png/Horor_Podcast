@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
+import '../logging/app_logger.dart';
 
 class LocalStorage {
   final SharedPreferences? _prefs;
@@ -12,7 +13,8 @@ class LocalStorage {
     try {
       final prefs = await SharedPreferences.getInstance();
       return LocalStorage(prefs);
-    } catch (_) {
+    } catch (e, st) {
+      AppLogger.error('Failed to initialize SharedPreferences', e, st);
       return LocalStorage(null);
     }
   }
@@ -110,16 +112,16 @@ class LocalStorage {
   // Onboarding
   bool hasSeenOnboarding() {
     if (_prefs != null) {
-      return _prefs.getBool(AppConstants.keyHasSeenOnboarding) ?? false;
+      final val = _prefs.getBool(AppConstants.keyHasSeenOnboarding);
+      if (val != null) return val;
     }
     return (_memoryFallback[AppConstants.keyHasSeenOnboarding] as bool?) ?? false;
   }
 
   Future<void> setHasSeenOnboarding(bool seen) async {
+    _memoryFallback[AppConstants.keyHasSeenOnboarding] = seen;
     if (_prefs != null) {
       await _prefs.setBool(AppConstants.keyHasSeenOnboarding, seen);
-    } else {
-      _memoryFallback[AppConstants.keyHasSeenOnboarding] = seen;
     }
   }
 

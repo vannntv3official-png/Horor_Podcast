@@ -53,6 +53,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final currentUser = _supabase.auth.currentUser;
     if (currentUser != null) {
       state = state.copyWith(user: currentUser, isGuest: false);
+      _ref.read(localStorageProvider).setHasSeenOnboarding(true);
       _fetchProfile(currentUser.id);
     }
 
@@ -60,8 +61,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = data.session?.user;
       if (user != null) {
         state = state.copyWith(user: user, isGuest: false);
+        _ref.read(localStorageProvider).setHasSeenOnboarding(true);
         _fetchProfile(user.id);
-      } else {
+      } else if (data.event == AuthChangeEvent.signedOut) {
         state = const AuthState(isGuest: true);
       }
     });
@@ -97,6 +99,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isGuest: false,
           isLoading: false,
         );
+        await _ref.read(localStorageProvider).setHasSeenOnboarding(true);
         await _fetchProfile(response.user!.id);
         await _syncGuestFavorites(response.user!.id);
         return true;
@@ -133,6 +136,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
             isGuest: false,
             isLoading: false,
           );
+          await _ref.read(localStorageProvider).setHasSeenOnboarding(true);
           await _fetchProfile(response.user!.id);
           await _syncGuestFavorites(response.user!.id);
           return true;

@@ -24,9 +24,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: () {
+      if (isAuthenticated) return '/';
       if (!hasSeenOnboarding) return '/onboarding';
-      if (!isAuthenticated) return '/login';
-      return '/';
+      return '/login';
     }(),
     redirect: (context, state) {
       final seenOnboarding = localStorage.hasSeenOnboarding();
@@ -36,25 +36,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isAuthRoute = location == '/login' || location == '/register';
       final isOnboardingRoute = location == '/onboarding';
 
-      // 1. First-time users must see onboarding
+      // 1. Authenticated users always stay in app, never see auth or onboarding
+      if (isLoggedIn) {
+        if (isAuthRoute || isOnboardingRoute) {
+          return '/';
+        }
+        return null;
+      }
+
+      // 2. Unauthenticated first-time users must see onboarding
       if (!seenOnboarding) {
-        if (!isOnboardingRoute && !isAuthRoute) {
-          return '/onboarding';
+        if (isOnboardingRoute || isAuthRoute) {
+          return null;
         }
-        return null;
+        return '/onboarding';
       }
 
-      // 2. Unauthenticated users must log in
-      if (!isLoggedIn) {
-        if (!isAuthRoute) {
-          return '/login';
-        }
-        return null;
-      }
-
-      // 3. Authenticated users should not see login/register/onboarding
-      if (isLoggedIn && (isAuthRoute || isOnboardingRoute)) {
-        return '/';
+      // 3. Unauthenticated returning users must log in
+      if (!isAuthRoute) {
+        return '/login';
       }
 
       return null;
