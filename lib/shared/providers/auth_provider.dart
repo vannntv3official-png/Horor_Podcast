@@ -74,13 +74,54 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final res = await _supabase
           .from('profiles')
-          .select('*, user_roles(role)')
+          .select('*')
           .eq('id', userId)
           .maybeSingle();
 
+      String role = 'user';
+      try {
+        final roleRes = await _supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', userId)
+            .maybeSingle();
+        if (roleRes != null && roleRes['role'] != null) {
+          role = roleRes['role'] as String;
+        }
+      } catch (_) {}
+
       if (res != null) {
-        final profile = UserProfileModel.fromJson(res);
+        final profile = UserProfileModel.fromJson({
+          ...res,
+          'user_roles': [
+            {'role': role}
+          ],
+        });
         state = state.copyWith(profile: profile);
+      } else {
+        // Auto-create missing profile in database so user appears in admin dashboard
+        final user = _supabase.auth.currentUser;
+        final name = user?.userMetadata?['display_name'] as String? ??
+            user?.email?.split('@').first ??
+            'អ្នកស្តាប់';
+        await _supabase.from('profiles').upsert({
+          'id': userId,
+          'display_name': name,
+          'preferred_language': 'km',
+        });
+        await _supabase.from('user_roles').upsert({
+          'user_id': userId,
+          'role': 'user',
+        }, onConflict: 'user_id,role');
+        state = state.copyWith(
+          profile: UserProfileModel(
+            id: userId,
+            displayName: name,
+            preferredLanguage: 'km',
+            role: role,
+            createdAt: DateTime.now(),
+          ),
+        );
       }
     } catch (e) {
       AppLogger.warning('Failed to load user profile: $e');

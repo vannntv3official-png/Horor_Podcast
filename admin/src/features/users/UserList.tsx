@@ -3,7 +3,17 @@ import { supabase } from '../../lib/supabase';
 import { formatDate } from '../../lib/utils';
 import { useAuth } from '../auth/AuthContext';
 import type { UserProfile, UserRole } from '../../types';
-import { Users, Shield, Loader2, Search, AlertCircle, RefreshCw } from 'lucide-react';
+import {
+  Users,
+  Shield,
+  Loader2,
+  Search,
+  AlertCircle,
+  RefreshCw,
+  Copy,
+  Check,
+  Database,
+} from 'lucide-react';
 
 export const UserList: React.FC = () => {
   const { user: currentUser, isAdmin } = useAuth();
@@ -13,12 +23,45 @@ export const UserList: React.FC = () => {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [copiedSql, setCopiedSql] = useState(false);
+
+  const syncSqlCode = `-- Run this in Supabase Dashboard -> SQL Editor to sync all users from Auth into Profiles:
+INSERT INTO public.profiles (id, display_name, preferred_language)
+SELECT 
+    id, 
+    COALESCE(raw_user_meta_data->>'display_name', split_part(email, '@', 1)), 
+    'km'
+FROM auth.users
+ON CONFLICT (id) DO UPDATE SET
+    display_name = COALESCE(EXCLUDED.display_name, public.profiles.display_name);
+
+INSERT INTO public.user_roles (user_id, role)
+SELECT id, 'user'
+FROM auth.users
+ON CONFLICT (user_id, role) DO NOTHING;`;
 
   const fetchUsers = async () => {
     setLoading(true);
     setErrorMessage(null);
     try {
-      // 1. Fetch profiles safely without relying on relational foreign keys
+      // 1. Auto-ensure current logged-in admin has a row in public.profiles
+      if (currentUser) {
+        await supabase
+          .from('profiles')
+          .upsert(
+            {
+              id: currentUser.id,
+              display_name:
+                currentUser.user_metadata?.display_name ||
+                currentUser.email?.split('@')[0] ||
+                'Admin',
+              preferred_language: 'km',
+            },
+            { onConflict: 'id' }
+          );
+      }
+
+      // 2. Fetch profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
@@ -26,16 +69,16 @@ export const UserList: React.FC = () => {
 
       if (profilesError) throw profilesError;
 
-      // 2. Fetch user roles in parallel
+      // 3. Fetch user roles in parallel
       const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id, role');
 
       if (rolesError) {
-        console.warn('Could not fetch roles from user_roles table:', rolesError.message);
+        console.warn('Could not fetch roles from user_roles:', rolesError.message);
       }
 
-      // 3. Map user roles to user IDs (prioritizing admin > editor > user)
+      // 4. Map user roles to user IDs
       const roleMap = new Map<string, UserRole>();
       (rolesData || []).forEach((r) => {
         const existing = roleMap.get(r.user_id);
@@ -44,18 +87,39 @@ export const UserList: React.FC = () => {
         }
       });
 
-      // 4. Format profiles
+      // 5. Build user list from profiles
       const formatted: UserProfile[] = (profilesData || []).map((p) => ({
         ...p,
         role: roleMap.get(p.id) || 'user',
       }));
+
+      // 6. If any users exist in user_roles but not yet in profiles, include them as fallbacks
+      const existingProfileIds = new Set(formatted.map((p) => p.id));
+      (rolesData || []).forEach((r) => {
+        if (!existingProfileIds.has(r.user_id)) {
+          existingProfileIds.add(r.user_id);
+          formatted.push({
+            id: r.user_id,
+            display_name:
+              r.user_id === currentUser?.id
+                ? currentUser?.email?.split('@')[0] || 'Admin'
+                : 'User (Auth Registered)',
+            avatar_path: null,
+            preferred_language: 'km',
+            notifications_enabled: true,
+            role: r.role as UserRole,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+        }
+      });
 
       setUsers(formatted);
     } catch (err: unknown) {
       console.error('Failed to load users:', err);
       setErrorMessage(
         (err as Error).message ||
-          'មិនអាចទាញយកបញ្ជីអ្នកប្រើប្រាស់បានទេ។ សូមប្រាកដថាគណនីរបស់អ្នកមានសិទ្ធិជា Admin ឬ Editor ក្នុង Supabase។'
+          'មិនអាចទាញយកបញ្ជីអ្នកប្រើប្រាស់បានទេ។ សូមប្រាកដថាគណនីរបស់អ្នកមានសិទ្ធិជា Admin ក្នុង Supabase។'
       );
     } finally {
       setLoading(false);
@@ -64,7 +128,7 @@ export const UserList: React.FC = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [currentUser]);
 
   const handleRoleChange = async (targetUserId: string, newRole: UserRole) => {
     if (!isAdmin) {
@@ -103,6 +167,12 @@ export const UserList: React.FC = () => {
     } finally {
       setUpdatingId(null);
     }
+  };
+
+  const copySqlToClipboard = () => {
+    navigator.clipboard.writeText(syncSqlCode);
+    setCopiedSql(true);
+    setTimeout(() => setCopiedSql(false), 2500);
   };
 
   const filteredUsers = users.filter((u) => {
@@ -145,6 +215,14 @@ export const UserList: React.FC = () => {
             <option value="editor">Editor</option>
             <option value="user">User</option>
           </select>
+
+          <button
+            onClick={fetchUsers}
+            className="p-2 rounded-xl bg-white border border-[#E2DCEB] text-[#1D102F] hover:bg-gray-50 transition-colors cursor-pointer"
+            title="Refresh Users"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -167,6 +245,26 @@ export const UserList: React.FC = () => {
         </div>
       )}
 
+      {/* Sync Users from Auth Notice Banner */}
+      <div className="p-4 rounded-2xl bg-[#EDE8F5]/60 border border-[#E2DCEB] flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex items-start gap-2.5">
+          <Database className="w-5 h-5 text-[#C89B3C] flex-shrink-0 mt-0.5" />
+          <div className="text-xs">
+            <p className="font-bold text-[#1D102F]">ធ្វើសមកាលកម្មគណនី (Sync Users from Supabase Auth)</p>
+            <p className="text-[#635C6E]">
+              ប្រសិនបើមានអ្នកប្រើប្រាស់ទើបចុះឈ្មោះក្នុង Auth តែមិនទាន់បង្ហាញក្នុង Profiles សូមចម្លងកូដ SQL នេះទៅ Run ក្នុង Supabase SQL Editor។
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={copySqlToClipboard}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-[#E2DCEB] text-xs font-semibold text-[#1D102F] hover:bg-gray-50 transition-colors cursor-pointer shadow-xs flex-shrink-0"
+        >
+          {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#C89B3C]" />}
+          <span>{copiedSql ? 'បានចម្លងរួច!' : 'ចម្លងកូដ SQL (Copy)'}</span>
+        </button>
+      </div>
+
       <div className="glass-panel rounded-3xl border border-[#E2DCEB] overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-20">
@@ -176,8 +274,10 @@ export const UserList: React.FC = () => {
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Users className="w-12 h-12 text-[#8A7B9B] mb-3" />
             <p className="font-semibold text-sm text-[#1D102F]">មិនមានអ្នកប្រើប្រាស់ត្រូវតាមលក្ខខណ្ឌទេ</p>
-            <p className="text-xs text-[#8A7B9B] mt-1">
-              {users.length === 0 ? 'មិនទាន់មានគណនីណាមួយត្រូវបានរក្សាទុកក្នុង Profiles នៅឡើយទេ។' : 'សូមសាកល្បងផ្លាស់ប្តូរពាក្យស្វែងរក។'}
+            <p className="text-xs text-[#8A7B9B] mt-1 max-w-md">
+              {users.length === 0
+                ? 'មិនទាន់មានទិន្នន័យក្នុងតារាង profiles ទេ។ សូមចុច "ចម្លងកូដ SQL" ខាងលើ រួច Run ក្នុង Supabase Dashboard ដើម្បី Sync គណនីទាំងអស់ភ្លាមៗ។'
+                : 'សូមសាកល្បងផ្លាស់ប្តូរពាក្យស្វែងរក។'}
             </p>
           </div>
         ) : (
