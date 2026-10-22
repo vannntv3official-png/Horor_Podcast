@@ -1,7 +1,7 @@
 name: khmer_horror_podcast
 description: "Khmer Horror Podcast - Premium Digital Audio Platform for Khmer Ghost Stories and Folklore"
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.13.5

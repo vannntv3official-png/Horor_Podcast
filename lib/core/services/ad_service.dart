@@ -72,24 +72,29 @@ class AdService {
   }
 
   void _loadInterstitialAd() {
-    if (isUserVip || _isInterstitialLoading) return;
-    _isInterstitialLoading = true;
+    try {
+      if (isUserVip || _isInterstitialLoading) return;
+      _isInterstitialLoading = true;
 
-    InterstitialAd.load(
-      adUnitId: interstitialAdUnitId,
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) {
-          _interstitialAd = ad;
-          _isInterstitialLoading = false;
-        },
-        onAdFailedToLoad: (error) {
-          _interstitialAd = null;
-          _isInterstitialLoading = false;
-          AppLogger.warning('Interstitial ad failed to load: $error');
-        },
-      ),
-    );
+      InterstitialAd.load(
+        adUnitId: interstitialAdUnitId,
+        request: const AdRequest(),
+        adLoadCallback: InterstitialAdLoadCallback(
+          onAdLoaded: (ad) {
+            _interstitialAd = ad;
+            _isInterstitialLoading = false;
+          },
+          onAdFailedToLoad: (error) {
+            _interstitialAd = null;
+            _isInterstitialLoading = false;
+            AppLogger.warning('Interstitial ad failed to load: $error');
+          },
+        ),
+      );
+    } catch (e) {
+      _isInterstitialLoading = false;
+      AppLogger.warning('Error initiating interstitial ad load: $e');
+    }
   }
 
   /// Show Interstitial ad between episodes (with 8-min frequency cap to avoid annoying users)
@@ -129,24 +134,29 @@ class AdService {
   }
 
   void _loadRewardedAd() {
-    if (_isRewardedLoading) return;
-    _isRewardedLoading = true;
+    try {
+      if (_isRewardedLoading) return;
+      _isRewardedLoading = true;
 
-    RewardedAd.load(
-      adUnitId: rewardedAdUnitId,
-      request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) {
-          _rewardedAd = ad;
-          _isRewardedLoading = false;
-        },
-        onAdFailedToLoad: (error) {
-          _rewardedAd = null;
-          _isRewardedLoading = false;
-          AppLogger.warning('Rewarded ad failed to load: $error');
-        },
-      ),
-    );
+      RewardedAd.load(
+        adUnitId: rewardedAdUnitId,
+        request: const AdRequest(),
+        rewardedAdLoadCallback: RewardedAdLoadCallback(
+          onAdLoaded: (ad) {
+            _rewardedAd = ad;
+            _isRewardedLoading = false;
+          },
+          onAdFailedToLoad: (error) {
+            _rewardedAd = null;
+            _isRewardedLoading = false;
+            AppLogger.warning('Rewarded ad failed to load: $error');
+          },
+        ),
+      );
+    } catch (e) {
+      _isRewardedLoading = false;
+      AppLogger.warning('Error initiating rewarded ad load: $e');
+    }
   }
 
   /// Show Rewarded video ad for unlocking exclusive episodes or bonus rewards
@@ -198,29 +208,33 @@ class _AdBannerWidgetState extends ConsumerState<AdBannerWidget> {
   }
 
   void _loadBanner() {
-    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return;
+    try {
+      if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return;
 
-    final isVip = ref.read(authProvider).profile?.isVipActive ?? false;
-    if (isVip) return; // VIP users see ZERO ads
+      final isVip = ref.read(authProvider).profile?.isVipActive ?? false;
+      if (isVip) return; // VIP users see ZERO ads
 
-    _bannerAd = BannerAd(
-      adUnitId: AdService.bannerAdUnitId,
-      request: const AdRequest(),
-      size: AdSize.banner,
-      listener: BannerAdListener(
-        onAdLoaded: (ad) {
-          if (mounted) {
-            setState(() {
-              _isLoaded = true;
-            });
-          }
-        },
-        onAdFailedToLoad: (ad, error) {
-          ad.dispose();
-          AppLogger.warning('Banner ad failed to load: $error');
-        },
-      ),
-    )..load();
+      _bannerAd = BannerAd(
+        adUnitId: AdService.bannerAdUnitId,
+        request: const AdRequest(),
+        size: AdSize.banner,
+        listener: BannerAdListener(
+          onAdLoaded: (ad) {
+            if (mounted) {
+              setState(() {
+                _isLoaded = true;
+              });
+            }
+          },
+          onAdFailedToLoad: (ad, error) {
+            ad.dispose();
+            AppLogger.warning('Banner ad failed to load: $error');
+          },
+        ),
+      )..load();
+    } catch (e) {
+      AppLogger.warning('Banner ad load caught exception: $e');
+    }
   }
 
   @override
@@ -236,41 +250,45 @@ class _AdBannerWidgetState extends ConsumerState<AdBannerWidget> {
       return const SizedBox.shrink();
     }
 
-    return Container(
-      width: _bannerAd!.size.width.toDouble(),
-      height: _bannerAd!.size.height.toDouble(),
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: const Color(0xFF160D23),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2E1A47)),
-      ),
-      child: Stack(
+    try {
+      return Container(
+        width: _bannerAd!.size.width.toDouble(),
+        height: _bannerAd!.size.height.toDouble(),
+        margin: const EdgeInsets.symmetric(vertical: 8),
         alignment: Alignment.center,
-        children: [
-          AdWidget(ad: _bannerAd!),
-          Positioned(
-            top: 2,
-            right: 4,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Text(
-                'AD',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 8,
-                  fontWeight: FontWeight.bold,
+        decoration: BoxDecoration(
+          color: const Color(0xFF160D23),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF2E1A47)),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            AdWidget(ad: _bannerAd!),
+            Positioned(
+              top: 2,
+              right: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'AD',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    } catch (e) {
+      return const SizedBox.shrink();
+    }
   }
 }
